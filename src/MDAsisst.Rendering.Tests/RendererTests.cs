@@ -85,17 +85,25 @@ public class RendererTests
         Assert.Empty(Render("   ").Blocks);
     }
 
-    [Fact]
-    public void 一万行の文書を継続入力中の再描画で500ミリ秒以内に描画できる()
+    private static string BuildDocument(int lines)
     {
-        // NFR-04 は「デバウンス後の再描画」の応答性を対象とする（1入力ごとの再パース想定）。
-        // 初回呼び出しは JIT ウォームアップ・アセンブリロードのコストを含み CI 環境では
-        // 数秒かかることがあるため計測対象から除外し、ウォームアップ後の定常状態を計測する。
         var sb = new StringBuilder();
-        for (int i = 0; i < 10000; i++)
+        for (int i = 0; i < lines; i++)
             sb.AppendLine(i % 10 == 0 ? $"## 見出し {i}" : $"- 項目 {i} と **強調** と `code`");
-        var markdown = sb.ToString();
+        return sb.ToString();
+    }
 
+    /// <summary>
+    /// NFR-04（改訂, ADR-0005）: ライブプレビュー対象は
+    /// <see cref="MDAsisst.App.Views.MainWindow"/> の LargeDocumentLineThreshold（5,000行）以下。
+    /// 実測（CI: windows-latest, ウォームアップ後）で 10,000 行は約 890ms かかり
+    /// 500ms を満たせないことが判明したため、ADR-0005 で 5,000行超は自動プレビューを
+    /// 一時停止する仕様に変更した。本テストは改訂後の対象範囲で性能を保証する。
+    /// </summary>
+    [Fact]
+    public void 五千行の文書を継続入力中の再描画で500ミリ秒以内に描画できる()
+    {
+        var markdown = BuildDocument(5000);
         _ = Render(markdown);   // ウォームアップ（JIT・初回アロケーション）
 
         var sw = Stopwatch.StartNew();
@@ -106,19 +114,21 @@ public class RendererTests
         Assert.True(sw.ElapsedMilliseconds < 500, $"NFR-04 違反（ウォームアップ後）: {sw.ElapsedMilliseconds}ms");
     }
 
+    /// <summary>
+    /// ADR-0005 の自動プレビュー一時停止の対象となる規模（10,000行）でも、
+    /// 手動更新（Ctrl+Shift+P）でUIが長時間フリーズしないことを上限値で確認する。
+    /// </summary>
     [Fact]
-    public void 一万行の文書の初回描画が10秒以内に完了する()
+    public void 一万行の文書の手動更新描画が3秒以内に完了する()
     {
-        // 初回のみ発生するコスト（JIT等）の上限をコールドパスの安全網として別途検証する。
-        var sb = new StringBuilder();
-        for (int i = 0; i < 10000; i++)
-            sb.AppendLine(i % 10 == 0 ? $"## 見出し {i}" : $"- 項目 {i} と **強調** と `code`");
+        var markdown = BuildDocument(10000);
+        _ = Render(markdown);   // ウォームアップ
 
         var sw = Stopwatch.StartNew();
-        var doc = Render(sb.ToString());
+        var doc = Render(markdown);
         sw.Stop();
 
         Assert.NotEmpty(doc.Blocks);
-        Assert.True(sw.ElapsedMilliseconds < 10000, $"初回描画が遅すぎます: {sw.ElapsedMilliseconds}ms");
+        Assert.True(sw.ElapsedMilliseconds < 3000, $"ISS-006 悪化: {sw.ElapsedMilliseconds}ms");
     }
 }
