@@ -76,7 +76,12 @@ public sealed class VelopackUpdateService : IUpdateService
         if (update?.Payload is not UpdateInfo info) return false;
         try
         {
-            _manager.WaitExitThenApplyUpdates(info.TargetFullRelease, silent: true, restart: false);
+            // ADR-0008: restart は必ず true にする。false にすると、Velopack がバックグラウンドで
+            // current フォルダへ新バージョンを展開している最中にユーザーが手動で再起動した場合、
+            // 展開途中の MDAsisst.dll をロードして FileLoadException（アクセス拒否）で
+            // 起動不能になる（ISS-007）。restart: true にすることで、展開が完全に終わった後
+            // にのみ Velopack 自身が再起動するため、このレースコンディションが構造的になくなる。
+            _manager.WaitExitThenApplyUpdates(info.TargetFullRelease, silent: true, restart: true);
             return true;
         }
         catch (Exception ex)

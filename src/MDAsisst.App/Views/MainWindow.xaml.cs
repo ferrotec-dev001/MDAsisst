@@ -560,7 +560,7 @@ public partial class MainWindow : Window
 
             if (await _app.UpdateService.DownloadAsync(update) && _app.UpdateService.ApplyOnExit(update))
             {
-                Dispatcher.Invoke(() => SetStatus($"v{update.Version} をダウンロードしました。次回起動時に更新されます。"));
+                Dispatcher.Invoke(() => SetStatus($"v{update.Version} をダウンロードしました。アプリを閉じると自動的に更新・再起動します。"));
             }
         }
         catch (Exception ex)
