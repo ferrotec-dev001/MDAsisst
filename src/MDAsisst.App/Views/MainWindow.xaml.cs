@@ -174,11 +174,41 @@ public partial class MainWindow : Window
         UpdateTitle();
     }
 
+    /// <summary>
+    /// ISS-006: WPF は DependencyObject 1個あたりのコストが高く、超大規模文書（数万行）を
+    /// 毎入力ごとに全量再構築すると NFR-04 (10,000行/500ms) を満たせない場合がある。
+    /// 恒久対策（差分レンダリング等）は次期検討とし、暫定策として閾値を超えたら
+    /// 自動プレビューを止めて手動更新に切り替え、業務が固まらないようにする。
+    /// </summary>
+    private const int LargeDocumentLineThreshold = 5000;
+    private bool _previewSuspendedForLargeDocument;
+
     private void UpdatePreview()
     {
         if (Settings.Behavior.LayoutMode == LayoutMode.EditorOnly) return;
+
+        var lineCount = Editor.LineCount;
+        if (lineCount > LargeDocumentLineThreshold)
+        {
+            if (!_previewSuspendedForLargeDocument)
+            {
+                _previewSuspendedForLargeDocument = true;
+                StatusText.Text = $"文書が大きいため（{lineCount}行）自動プレビューを一時停止しました。手動更新: Ctrl+Shift+P";
+            }
+            return;
+        }
+        _previewSuspendedForLargeDocument = false;
+
         _renderer.BaseDirectory = _vm.BaseDirectory;
         Preview.Document = _renderer.Render(Editor.Text);
+    }
+
+    /// <summary>大規模文書で自動プレビューを止めた場合に、明示操作で1回だけ再描画する。</summary>
+    private void ForceUpdatePreview()
+    {
+        _renderer.BaseDirectory = _vm.BaseDirectory;
+        Preview.Document = _renderer.Render(Editor.Text);
+        StatusText.Text = "プレビューを更新しました。";
     }
 
     private void UpdateTitle()
@@ -221,6 +251,7 @@ public partial class MainWindow : Window
         if (ctrl && e.Key == Key.S) { SaveDocument(saveAs: false); e.Handled = true; return; }
         if (ctrl && e.Key == Key.O) { OpenDocument(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.N) { NewDocument(); e.Handled = true; return; }
+        if (ctrl && (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift && e.Key == Key.P) { ForceUpdatePreview(); e.Handled = true; return; }
 
         if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) == 0)
         {

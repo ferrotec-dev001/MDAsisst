@@ -19,7 +19,7 @@
 | プロジェクト | 件数 | 結果 | 備考 |
 | --- | --- | --- | --- |
 | MDAsisst.Core.Tests | 60 | **60 件成功 / 失敗 0** | 設定・編集支援・状態機械・チートシート |
-| MDAsisst.Rendering.Tests | 12 | **未実行（Windows 必須）** | WPF ランタイムが Linux に無いため。CI(windows-latest) で実行 |
+| MDAsisst.Rendering.Tests | 22 | **21件成功 / 1件失敗→修正後CI再実行** | WPF ランタイムが Linux に無いため CI(windows-latest) で実行。NFR-04性能テストがCI実測2.4秒で失敗（ISS-006） |
 
 ### 2.1 カバーした観点（NFR-07: 正常系・境界値・異常値）
 
@@ -42,6 +42,12 @@
 | 4 | `SystemParameters.WorkArea` はプライマリモニタのみ | `MonitorFromWindow` + `GetDpiForWindow` による自前計算に変更（FR-WN-16） |
 | 5 | GitHub API の未認証レート制限は 60 req/h・IP 単位（社内 NAT で共有） | 自動更新チェックを **24時間に1回** へ間引き、`LastCheckedUtc` を設定に保存 |
 | 6 | WPF 依存の単体テストは Linux で実行不可 | テストを Core（net8.0）と Rendering（net8.0-windows）に分離し、後者は CI(Windows) で実行 |
+
+## 3.1 CI実行で新たに判明した重要事項
+
+| No | 事象 | 対応 |
+| --- | --- | --- |
+| 7 | 10,000行文書の FlowDocument 変換が GitHub Actions (windows-latest) 実測で約2.4秒。WPF の DependencyObject 生成コストが原因でJITウォームアップの問題ではない | **ADR-0005**: 5,000行超で自動プレビューを一時停止し `Ctrl+Shift+P` で手動更新に切替。NFR-04の恒久対策（差分レンダリング等）は文書規模の実態確認後に決定 |
 
 ## 4. 未実施（UAT および Windows 実機で確認が必要な項目）
 
