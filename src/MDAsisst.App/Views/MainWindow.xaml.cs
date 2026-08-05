@@ -30,6 +30,14 @@ public partial class MainWindow : Window
     private Rect _expandedPlacement;
     private bool _exiting;
 
+    /// <summary>
+    /// Issue #3 対応: ファイルを開く／新規作成時に Editor.Text をプログラムから設定すると
+    /// TextChanged が発火し MainViewModel.OnTextChanged が IsDirty=true を立ててしまう
+    /// （読み込んだ直後なのに「変更あり」扱いになり、終了時に不要な保存確認が出る）。
+    /// この間だけ変更検知を止めることで、実際にユーザーが編集した場合のみ IsDirty を立てる。
+    /// </summary>
+    private bool _suppressChangeTracking;
+
     private AppSettings Settings => _app.Settings.Current;
 
     public MainWindow()
@@ -38,7 +46,7 @@ public partial class MainWindow : Window
 
         _vm = new MainViewModel(Settings, _app.CheatSheet, _app.Documents, _app.Log);
         DataContext = _vm;
-        CheatList.ItemsSource = _vm.FilteredSnippets;
+        CheatCategoryList.ItemsSource = _vm.Categories;
 
         _debounce = new DebounceDispatcher(Dispatcher);
         _renderer = CreateRenderer();
@@ -76,7 +84,6 @@ public partial class MainWindow : Window
         ApplyLayout(Settings.Behavior.LayoutMode);
         WindowEffects.HideFromAltTab(this);
         Topmost = Settings.Behavior.Topmost;
-        VersionText.Text = $"v{_app.UpdateService.CurrentVersion}";
         _visibilityTimer.Start();
         ConfigureAutoSave();
         UpdatePreview();
@@ -113,7 +120,7 @@ public partial class MainWindow : Window
         Settings.Window.Height = p.Height;
     }
 
-    /// <summary>アピアランス設定を画面へ反映する（FR-WN-04〜07, 17）。</summary>
+    /// <summary>アピアランス設定を画面へ反映する（FR-WN-04〜07, 17 / Issue #1 ライブプレビューからも呼ばれる）。</summary>
     public void ApplyAppearance()
     {
         var a = Settings.Appearance;
@@ -148,11 +155,45 @@ public partial class MainWindow : Window
         return new SolidColorBrush(fallback);
     }
 
+    /// <summary>
+    /// Issue #8: 左側は「上=エディタ／下=プレビュー」の上下分割に変更し、
+    /// 右側のチートシート領域を広く確保する。レイアウト切替は行の高さで行う。
+    /// </summary>
     private void ApplyLayout(LayoutMode mode)
     {
-        EditorColumn.Width = mode == LayoutMode.PreviewOnly ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        PreviewColumn.Width = mode == LayoutMode.EditorOnly ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        if (LayoutSelector.SelectedIndex != (int)mode) LayoutSelector.SelectedIndex = (int)mode;
+        switch (mode)
+        {
+            case LayoutMode.EditorOnly:
+                EditorRow.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow.Height = new GridLength(0);
+                EditorPreviewSplitterRow.Height = new GridLength(0);
+                break;
+            case LayoutMode.PreviewOnly:
+                EditorRow.Height = new GridLength(0);
+                PreviewRow.Height = new GridLength(1, GridUnitType.Star);
+                EditorPreviewSplitterRow.Height = new GridLength(0);
+                break;
+            default:
+                EditorRow.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow.Height = new GridLength(1, GridUnitType.Star);
+                EditorPreviewSplitterRow.Height = new GridLength(4);
+                break;
+        }
+    }
+
+    /// <summary>Issue #6: レイアウト切替はあまり使わないため、アイコン1つでモードを巡回させる。</summary>
+    private void Layout_Click(object sender, RoutedEventArgs e)
+    {
+        var next = (LayoutMode)(((int)Settings.Behavior.LayoutMode + 1) % 3);
+        Settings.Behavior.LayoutMode = next;
+        ApplyLayout(next);
+        UpdatePreview();
+        LayoutButton.ToolTip = "表示レイアウト: " + next switch
+        {
+            LayoutMode.EditorOnly => "エディタのみ",
+            LayoutMode.PreviewOnly => "プレビューのみ",
+            _ => "上下分割"
+        };
     }
 
     private void ConfigureAutoSave()
@@ -167,6 +208,8 @@ public partial class MainWindow : Window
 
     private void Editor_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_suppressChangeTracking) return;
+
         _vm.Text = Editor.Text;
         _visibility.NotifyActivity();
         RestoreFromMinimizedIcon();
@@ -175,10 +218,8 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// ISS-006: WPF は DependencyObject 1個あたりのコストが高く、超大規模文書（数万行）を
-    /// 毎入力ごとに全量再構築すると NFR-04 (10,000行/500ms) を満たせない場合がある。
-    /// 恒久対策（差分レンダリング等）は次期検討とし、暫定策として閾値を超えたら
-    /// 自動プレビューを止めて手動更新に切り替え、業務が固まらないようにする。
+    /// ISS-006 / ADR-0005: 5,000行超は自動プレビューを一時停止し手動更新に切替える。
+    /// 想定最大文書規模は数百行のため、この閾値は恒久仕様として確定している（ADR-0005追記）。
     /// </summary>
     private const int LargeDocumentLineThreshold = 5000;
     private bool _previewSuspendedForLargeDocument;
@@ -193,7 +234,7 @@ public partial class MainWindow : Window
             if (!_previewSuspendedForLargeDocument)
             {
                 _previewSuspendedForLargeDocument = true;
-                StatusText.Text = $"文書が大きいため（{lineCount}行）自動プレビューを一時停止しました。手動更新: Ctrl+Shift+P";
+                SetStatus($"文書が大きいため（{lineCount}行）自動プレビューを一時停止しました。手動更新: Ctrl+Shift+P");
             }
             return;
         }
@@ -208,13 +249,19 @@ public partial class MainWindow : Window
     {
         _renderer.BaseDirectory = _vm.BaseDirectory;
         Preview.Document = _renderer.Render(Editor.Text);
-        StatusText.Text = "プレビューを更新しました。";
+        SetStatus("プレビューを更新しました。");
     }
 
     private void UpdateTitle()
     {
         TitleText.Text = _vm.Title;
-        StatusText.Text = _vm.StatusMessage;
+    }
+
+    /// <summary>Issue #7: ステータスバーは廃止し、タイトルのツールチップへ状態を出す。</summary>
+    private void SetStatus(string message)
+    {
+        _vm.StatusMessage = message;
+        TitleText.ToolTip = message;
     }
 
     private void OnLinkNavigated(object? sender, Uri uri)
@@ -272,13 +319,11 @@ public partial class MainWindow : Window
     private void InsertSnippetText(string insertText)
         => ApplyEdit(MarkdownEditingService.InsertSnippet(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, insertText));
 
-    private void CheatList_DoubleClick(object sender, MouseButtonEventArgs e)
+    /// <summary>Issue #5: チートシートは検索前提をやめ、常時表示のアイコンボタンから挿入する。</summary>
+    private void CheatButton_Click(object sender, RoutedEventArgs e)
     {
-        if (CheatList.SelectedItem is SnippetItem item) InsertSnippetText(item.InsertText);
+        if (sender is Button { Tag: SnippetItem item }) InsertSnippetText(item.InsertText);
     }
-
-    private void CheatSearch_TextChanged(object sender, TextChangedEventArgs e)
-        => _vm.CheatSheetKeyword = CheatSearch.Text;
 
     private void Bold_Click(object sender, RoutedEventArgs e)
         => ApplyEdit(MarkdownEditingService.ToggleWrap(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, "**"));
@@ -291,14 +336,6 @@ public partial class MainWindow : Window
     private void Table_Click(object sender, RoutedEventArgs e)
         => InsertSnippetText(MarkdownEditingService.CreateTable(2, 3));
 
-    private void Layout_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        Settings.Behavior.LayoutMode = (LayoutMode)Math.Max(0, LayoutSelector.SelectedIndex);
-        ApplyLayout(Settings.Behavior.LayoutMode);
-        UpdatePreview();
-    }
-
     // ---------- ファイル操作 ----------
 
     private void New_Click(object sender, RoutedEventArgs e) => NewDocument();
@@ -309,7 +346,11 @@ public partial class MainWindow : Window
     {
         if (!ConfirmDiscardChanges()) return;
         _vm.NewDocument();
+
+        _suppressChangeTracking = true;
         Editor.Text = string.Empty;
+        _suppressChangeTracking = false;
+
         UpdateTitle();
         UpdatePreview();
     }
@@ -325,7 +366,11 @@ public partial class MainWindow : Window
 
         if (_vm.Open(dialog.FileName))
         {
+            // Issue #3: 読み込み直後の Editor.Text 同期で IsDirty が誤って立たないようにする。
+            _suppressChangeTracking = true;
             Editor.Text = _vm.Text;
+            _suppressChangeTracking = false;
+
             UpdateTitle();
             UpdatePreview();
         }
@@ -356,6 +401,8 @@ public partial class MainWindow : Window
         if (!ok)
             MessageBox.Show(this, "保存に失敗しました。書き込み権限とディスク空き容量を確認してください。",
                 "MDAsisst", MessageBoxButton.OK, MessageBoxImage.Warning);
+        else
+            SetStatus(_vm.StatusMessage);
         UpdateTitle();
         return ok;
     }
@@ -368,7 +415,7 @@ public partial class MainWindow : Window
         UpdateTitle();
     }
 
-    /// <summary>未保存の変更がある場合に確認する（FR-ED-02）。続行してよいなら true。</summary>
+    /// <summary>未保存の変更がある場合に確認する（FR-ED-02 / Issue #3 で誤検知を修正済み）。続行してよいなら true。</summary>
     private bool ConfirmDiscardChanges()
     {
         if (!_vm.IsDirty) return true;
@@ -394,30 +441,45 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>画面隅の小アイコン状態へ縮小する（FR-WN-12）。</summary>
+    /// <summary>
+    /// Issue #9: 画面隅の小アイコン状態は、復帰導線として最低限のクリック領域が確保できれば十分。
+    /// 帯状の180x34ではなく、アイコンのみの44x44正方形へ縮小する。
+    /// </summary>
+    private const double MinimizedIconSize = 44;
+
     private void MinimizeToCornerIcon()
     {
         if (_minimizedIconMode || !IsVisible) return;
         _expandedPlacement = new Rect(Left, Top, Width, Height);
         _minimizedIconMode = true;
 
+        TitleBarGrid.Visibility = Visibility.Collapsed;
         ContentGrid.Visibility = Visibility.Collapsed;
-        Width = 180; Height = 34;
-        WindowEffects.SnapToCorner(this, Settings.Behavior.MinimizedCorner, Width, Height);
-        TitleText.Text = "MDAsisst（クリックで復帰）";
+        MinimizedIconOverlay.Visibility = Visibility.Visible;
+
+        Width = MinimizedIconSize; Height = MinimizedIconSize;
+        WindowEffects.SnapToCorner(this, Settings.Behavior.MinimizedCorner, Width, Height, margin: 8);
     }
 
-    /// <summary>最小アイコン状態から元の大きさへ戻す（FR-WN-11）。</summary>
     private void RestoreFromMinimizedIcon()
     {
         if (!_minimizedIconMode) return;
         _minimizedIconMode = false;
 
+        MinimizedIconOverlay.Visibility = Visibility.Collapsed;
+        TitleBarGrid.Visibility = Visibility.Visible;
         ContentGrid.Visibility = Visibility.Visible;
+
         Left = _expandedPlacement.X; Top = _expandedPlacement.Y;
         Width = _expandedPlacement.Width; Height = _expandedPlacement.Height;
         WindowEffects.EnsureVisible(this);
         UpdateTitle();
+    }
+
+    private void MinimizedIconOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _visibility.NotifyActivity();
+        RestoreFromMinimizedIcon();
     }
 
     protected override void OnActivated(EventArgs e)
@@ -465,14 +527,15 @@ public partial class MainWindow : Window
         Application.Current.Shutdown();
     }
 
+    /// <summary>Issue #1: 設定画面にライブプレビュー用コールバックを渡し、操作の都度即時反映する。</summary>
     private void OpenSettings_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsWindow(Settings, _app) { Owner = IsVisible ? this : null };
+        var dialog = new SettingsWindow(Settings, _app, ApplyAppearance) { Owner = IsVisible ? this : null };
         if (dialog.ShowDialog() == true)
         {
             _app.Settings.Save(Settings);
-            ApplyAppearance();
         }
+        ApplyAppearance();
     }
 
     // ---------- 更新 ----------
@@ -497,8 +560,7 @@ public partial class MainWindow : Window
 
             if (await _app.UpdateService.DownloadAsync(update) && _app.UpdateService.ApplyOnExit(update))
             {
-                Dispatcher.Invoke(() => StatusText.Text =
-                    $"v{update.Version} をダウンロードしました。次回起動時に更新されます。");
+                Dispatcher.Invoke(() => SetStatus($"v{update.Version} をダウンロードしました。次回起動時に更新されます。"));
             }
         }
         catch (Exception ex)

@@ -3,15 +3,38 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- Issue #2: 色選択に System.Windows.Forms.ColorDialog を利用するため有効化 -->
+    <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>MDAsisst</AssemblyName>
     <RootNamespace>MDAsisst.App</RootNamespace>
     <!-- Velopack: 自動生成 Main を無効化し App.Main を使う (ADR-0003) -->
     <StartupObject>MDAsisst.App.App</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Issue #4: 実行ファイル・ウィンドウ・タスクトレイのアイコン -->
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <!--
+      WFAC010: UseWindowsForms を有効にすると「WinForms の高DPI APIを使え」という提案が出るが、
+      本アプリはWPF主体でWinFormsはColorDialogのみの利用。DPI対応はWPFのapp.manifest
+      （PerMonitorV2、FR-WN-16）で行うため、この提案は本プロジェクトには該当しない。
+    -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ApplicationDefinition Remove="App.xaml" />
     <Page Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
+  <!--
+    Issue #2: 色選択ダイアログのために UseWindowsForms を有効化しているが、そのままだと
+    SDK が System.Windows.Forms / System.Drawing を暗黙 global using として追加し、
+    Application・Button・MessageBox・Color 等 WPF と同名の型がプロジェクト全体で曖昧になる。
+    該当2namespaceの暗黙usingだけを取り消し、WinForms側の型は使用箇所で完全修飾する。
+  -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

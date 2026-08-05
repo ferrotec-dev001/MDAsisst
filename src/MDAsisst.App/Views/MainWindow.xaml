@@ -4,7 +4,8 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:tb="http://www.hardcodet.net/taskbar"
         Title="MDAsisst"
-        Width="900" Height="600" MinWidth="320" MinHeight="200"
+        Icon="pack://application:,,,/Assets/icon.ico"
+        Width="900" Height="600" MinWidth="360" MinHeight="240"
         WindowStyle="None"
         AllowsTransparency="False"
         ResizeMode="CanResize"
@@ -14,20 +15,37 @@
 
     <!-- ADR-0004: AllowsTransparency は使わず WindowChrome + WS_EX_LAYERED で半透明化する -->
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="30" ResizeBorderThickness="8"
+        <shell:WindowChrome CaptionHeight="32" ResizeBorderThickness="8"
                             GlassFrameThickness="0" CornerRadius="0"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Grid>
+    <Window.Resources>
+        <Style x:Key="TitleIconButton" TargetType="Button">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#DDDDDD"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3A3A3D"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="30"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="32"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="24"/>
         </Grid.RowDefinitions>
 
-        <tb:TaskbarIcon x:Name="TrayIcon" ToolTipText="MDAsisst" TrayMouseDoubleClick="Tray_DoubleClick">
+        <tb:TaskbarIcon x:Name="TrayIcon" ToolTipText="MDAsisst"
+                        IconSource="pack://application:,,,/Assets/icon.ico"
+                        TrayMouseDoubleClick="Tray_DoubleClick">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="表示(_S)" Click="Tray_Show"/>
@@ -38,98 +56,119 @@
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
 
-        <!-- タイトルバー -->
-        <Grid Grid.Row="0" Background="#252526">
-            <TextBlock x:Name="TitleText" Text="MDAsisst" Margin="10,0,0,0"
-                       VerticalAlignment="Center" Foreground="#DDDDDD" FontSize="12"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="&#xE713;" FontFamily="Segoe MDL2 Assets" ToolTip="設定"
-                        Click="OpenSettings_Click" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Width="34" Background="Transparent" BorderThickness="0" Foreground="#DDDDDD"/>
-                <Button Content="&#xE921;" FontFamily="Segoe MDL2 Assets" ToolTip="最小化"
-                        Click="Minimize_Click" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Width="34" Background="Transparent" BorderThickness="0" Foreground="#DDDDDD"/>
-                <Button Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" ToolTip="トレイに格納"
-                        Click="Close_Click" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Width="34" Background="Transparent" BorderThickness="0" Foreground="#DDDDDD"/>
+        <!-- タイトルバー: Issue #6 メニューをアイコン化してここへ統合、Issue #7 ステータスバー廃止に伴い状態はツールチップへ -->
+        <Grid Grid.Row="0" Background="#252526" x:Name="TitleBarGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Image Grid.Column="0" Source="pack://application:,,,/Assets/icon.ico"
+                   Width="18" Height="18" Margin="8,0,4,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="TitleText" Grid.Column="1" Text="MDAsisst"
+                       VerticalAlignment="Center" Foreground="#DDDDDD" FontSize="12"
+                       ToolTip="準備完了" Margin="0,0,10,0"/>
+
+            <!-- 使用頻度の低い操作はアイコンボタンに統合（Issue #6） -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="NewButton" Content="&#xE7C3;" ToolTip="新規 (Ctrl+N)" Click="New_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button x:Name="OpenButton" Content="&#xE8E5;" ToolTip="開く (Ctrl+O)" Click="Open_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button x:Name="SaveButton" Content="&#xE74E;" ToolTip="保存 (Ctrl+S)" Click="Save_Click" Style="{StaticResource TitleIconButton}"/>
+                <Border Width="1" Height="16" Background="#3F3F46" Margin="4,0"/>
+                <Button Content="&#xE8DD;" ToolTip="太字 (Ctrl+B)" Click="Bold_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button Content="&#xE8DB;" ToolTip="斜体 (Ctrl+I)" Click="Italic_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button Content="&#xE71B;" ToolTip="リンク (Ctrl+K)" Click="Link_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button Content="&#xE8EC;" ToolTip="表の挿入" Click="Table_Click" Style="{StaticResource TitleIconButton}"/>
+                <Border Width="1" Height="16" Background="#3F3F46" Margin="4,0"/>
+                <Button x:Name="LayoutButton" Content="&#xE8A9;" ToolTip="表示レイアウトの切替" Click="Layout_Click" Style="{StaticResource TitleIconButton}"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" Orientation="Horizontal">
+                <Button Content="&#xE713;" ToolTip="設定" Click="OpenSettings_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button Content="&#xE921;" ToolTip="最小化" Click="Minimize_Click" Style="{StaticResource TitleIconButton}"/>
+                <Button Content="&#xE8BB;" ToolTip="トレイに格納" Click="Close_Click" Style="{StaticResource TitleIconButton}"/>
             </StackPanel>
         </Grid>
 
-        <!-- ツールバー -->
-        <ToolBarTray Grid.Row="1" Background="#2D2D30" IsLocked="True">
-            <ToolBar Background="#2D2D30" ToolBarTray.IsLocked="True">
-                <Button Content="新規" Click="New_Click"/>
-                <Button Content="開く" Click="Open_Click"/>
-                <Button Content="保存" Click="Save_Click"/>
-                <Separator/>
-                <Button Content="B" FontWeight="Bold" ToolTip="太字 (Ctrl+B)" Click="Bold_Click"/>
-                <Button Content="I" FontStyle="Italic" ToolTip="斜体 (Ctrl+I)" Click="Italic_Click"/>
-                <Button Content="Link" ToolTip="リンク (Ctrl+K)" Click="Link_Click"/>
-                <Button Content="表" ToolTip="表の挿入" Click="Table_Click"/>
-                <Separator/>
-                <ComboBox x:Name="LayoutSelector" Width="120" SelectionChanged="Layout_Changed">
-                    <ComboBoxItem Content="エディタのみ"/>
-                    <ComboBoxItem Content="プレビューのみ"/>
-                    <ComboBoxItem Content="左右分割" IsSelected="True"/>
-                </ComboBox>
-            </ToolBar>
-        </ToolBarTray>
-
-        <!-- 本体 -->
-        <Grid Grid.Row="2" x:Name="ContentGrid">
+        <!-- 本体: Issue #8 左側を上下分割(エディタ/プレビュー)、右側にチートシートを広めに確保 -->
+        <Grid Grid.Row="1" x:Name="ContentGrid">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="EditorColumn" Width="*"/>
+                <ColumnDefinition x:Name="MainColumn" Width="2*"/>
                 <ColumnDefinition Width="4"/>
-                <ColumnDefinition x:Name="PreviewColumn" Width="*"/>
-                <ColumnDefinition Width="4"/>
-                <ColumnDefinition x:Name="CheatColumn" Width="240"/>
+                <ColumnDefinition Width="300"/>
             </Grid.ColumnDefinitions>
 
-            <TextBox x:Name="Editor" Grid.Column="0"
-                     AcceptsReturn="True" AcceptsTab="True"
-                     TextWrapping="NoWrap"
-                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                     Background="#1E1E1E" Foreground="#FFFFFF" CaretBrush="#FFFFFF"
-                     BorderThickness="0" Padding="8"
-                     FontFamily="Consolas" FontSize="14"
-                     TextChanged="Editor_TextChanged"
-                     PreviewKeyDown="Editor_PreviewKeyDown"/>
+            <Grid Grid.Column="0" x:Name="EditorPreviewGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition x:Name="EditorRow" Height="*"/>
+                    <RowDefinition x:Name="EditorPreviewSplitterRow" Height="4"/>
+                    <RowDefinition x:Name="PreviewRow" Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBox x:Name="Editor" Grid.Row="0"
+                         AcceptsReturn="True" AcceptsTab="True"
+                         TextWrapping="NoWrap"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="#1E1E1E" Foreground="#FFFFFF" CaretBrush="#FFFFFF"
+                         BorderThickness="0" Padding="8"
+                         FontFamily="Consolas" FontSize="14"
+                         TextChanged="Editor_TextChanged"
+                         PreviewKeyDown="Editor_PreviewKeyDown"/>
+
+                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#3F3F46"/>
+
+                <FlowDocumentScrollViewer x:Name="Preview" Grid.Row="2"
+                                          Background="Transparent" Foreground="#FFFFFF"
+                                          VerticalScrollBarVisibility="Auto"
+                                          IsToolBarVisible="False"/>
+            </Grid>
 
             <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#3F3F46"/>
 
-            <FlowDocumentScrollViewer x:Name="Preview" Grid.Column="2"
-                                      Background="Transparent" Foreground="#FFFFFF"
-                                      VerticalScrollBarVisibility="Auto"
-                                      IsToolBarVisible="False"/>
-
-            <GridSplitter Grid.Column="3" Width="4" HorizontalAlignment="Stretch" Background="#3F3F46"/>
-
-            <DockPanel Grid.Column="4" Background="#252526">
-                <TextBox x:Name="CheatSearch" DockPanel.Dock="Top" Margin="6"
-                         Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#3F3F46"
-                         TextChanged="CheatSearch_TextChanged"
-                         ToolTip="チートシートを検索"/>
-                <ListBox x:Name="CheatList" Background="Transparent" BorderThickness="0"
-                         Foreground="#FFFFFF" MouseDoubleClick="CheatList_DoubleClick">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="2,4">
-                                <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="#FFD54F"/>
-                                <TextBlock Text="{Binding Example}" FontFamily="Consolas" FontSize="11"
-                                           Foreground="#CCCCCC" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+            <!-- チートシート: Issue #5 検索前提をやめ、全項目を常時アイコンボタンとして提示 -->
+            <DockPanel Grid.Column="2" Background="#252526">
+                <TextBlock DockPanel.Dock="Top" Text="Markdown 記法一覧（クリックで挿入）"
+                           Foreground="#AAAAAA" FontSize="10" Margin="8,6,8,2" TextWrapping="Wrap"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="CheatCategoryList" Margin="4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="4,6">
+                                    <TextBlock Text="{Binding Name}" Foreground="#FFD54F" FontWeight="Bold" FontSize="11" Margin="4,0,0,4"/>
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Width="56" Height="44" Margin="3"
+                                                        Background="#33FFFFFF" BorderBrush="#3F3F46" BorderThickness="1"
+                                                        Foreground="#FFFFFF" FontFamily="Consolas" FontSize="13"
+                                                        Content="{Binding Glyph}"
+                                                        ToolTip="{Binding Title}"
+                                                        Tag="{Binding}"
+                                                        Click="CheatButton_Click"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </DockPanel>
         </Grid>
 
-        <!-- ステータスバー -->
-        <Grid Grid.Row="3" Background="#007ACC">
-            <TextBlock x:Name="StatusText" Margin="8,0,0,0" VerticalAlignment="Center"
-                       Foreground="White" FontSize="11" Text="準備完了"/>
-            <TextBlock x:Name="VersionText" HorizontalAlignment="Right" Margin="0,0,8,0"
-                       VerticalAlignment="Center" Foreground="White" FontSize="11"/>
+        <!-- Issue #9: 最小化アイコンはアイコンのみの正方形にする -->
+        <Grid x:Name="MinimizedIconOverlay" Grid.RowSpan="2" Background="#CC1E1E1E"
+              Visibility="Collapsed" MouseLeftButtonDown="MinimizedIconOverlay_MouseLeftButtonDown"
+              shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <Image Source="pack://application:,,,/Assets/icon.ico" Width="28" Height="28"
+                   ToolTip="クリックで復帰"/>
         </Grid>
     </Grid>
 </Window>

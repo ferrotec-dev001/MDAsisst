@@ -2,15 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
-    <Application.Resources>
-        <Style x:Key="ChromeButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Width" Value="34"/>
-            <Setter Property="Height" Value="26"/>
-            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"
-                    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"/>
-        </Style>
-    </Application.Resources>
+    <!-- 共通のタイトルバーアイコンボタン様式は各ウィンドウ(MainWindow/SettingsWindow)で
+         "TitleIconButton" として個別定義している（Issue #10 でスタイルを統一済み）。 -->
+    <Application.Resources/>
 </Application>

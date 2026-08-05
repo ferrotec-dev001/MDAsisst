@@ -12,7 +12,8 @@
           "heading",
           "h1",
           "タイトル"
-        ]
+        ],
+        "glyph": "H1"
       },
       {
         "title": "見出し2",
@@ -23,7 +24,8 @@
         "keywords": [
           "heading",
           "h2"
-        ]
+        ],
+        "glyph": "H2"
       },
       {
         "title": "見出し3",
@@ -34,7 +36,8 @@
         "keywords": [
           "heading",
           "h3"
-        ]
+        ],
+        "glyph": "H3"
       }
     ]
   },
@@ -50,7 +53,8 @@
         "keywords": [
           "bold",
           "strong"
-        ]
+        ],
+        "glyph": "B"
       },
       {
         "title": "斜体",
@@ -61,7 +65,8 @@
         "keywords": [
           "italic",
           "em"
-        ]
+        ],
+        "glyph": "I"
       },
       {
         "title": "取消線",
@@ -71,7 +76,8 @@
         "description": "打ち消し",
         "keywords": [
           "strike"
-        ]
+        ],
+        "glyph": "S̶"
       },
       {
         "title": "インラインコード",
@@ -81,7 +87,8 @@
         "description": "文中のコード",
         "keywords": [
           "code"
-        ]
+        ],
+        "glyph": "`x`"
       }
     ]
   },
@@ -97,7 +104,8 @@
         "keywords": [
           "list",
           "ul"
-        ]
+        ],
+        "glyph": "•"
       },
       {
         "title": "番号付きリスト",
@@ -108,7 +116,8 @@
         "keywords": [
           "list",
           "ol"
-        ]
+        ],
+        "glyph": "1."
       },
       {
         "title": "タスクリスト",
@@ -119,7 +128,8 @@
         "keywords": [
           "task",
           "todo"
-        ]
+        ],
+        "glyph": "☑"
       }
     ]
   },
@@ -135,7 +145,8 @@
         "keywords": [
           "link",
           "url"
-        ]
+        ],
+        "glyph": "🔗"
       },
       {
         "title": "画像",
@@ -146,7 +157,8 @@
         "keywords": [
           "image",
           "img"
-        ]
+        ],
+        "glyph": "🖼"
       }
     ]
   },
@@ -162,7 +174,8 @@
         "keywords": [
           "code",
           "fence"
-        ]
+        ],
+        "glyph": "```"
       }
     ]
   },
@@ -177,7 +190,8 @@
         "description": "パイプ記法の表",
         "keywords": [
           "table"
-        ]
+        ],
+        "glyph": "▦"
       }
     ]
   },
@@ -192,7 +206,8 @@
         "description": "引用ブロック",
         "keywords": [
           "quote"
-        ]
+        ],
+        "glyph": "❝"
       },
       {
         "title": "水平線",
@@ -203,7 +218,8 @@
         "keywords": [
           "hr",
           "rule"
-        ]
+        ],
+        "glyph": "―"
       },
       {
         "title": "強制改行",
@@ -214,7 +230,8 @@
         "keywords": [
           "break",
           "改行"
-        ]
+        ],
+        "glyph": "↵"
       }
     ]
   }

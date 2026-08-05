@@ -19,23 +19,22 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string? _filePath;
     [ObservableProperty] private bool _isDirty;
     [ObservableProperty] private string _statusMessage = "準備完了";
-    [ObservableProperty] private string _cheatSheetKeyword = string.Empty;
 
     public AppSettings Settings { get; }
-    public ObservableCollection<CheatSheetCategory> Categories { get; } = new();
-    public ObservableCollection<SnippetItem> FilteredSnippets { get; } = new();
 
-    private readonly ICheatSheetProvider _cheatSheet;
+    /// <summary>
+    /// Issue #5: 検索前提をやめ、全カテゴリ・全項目を常時アイコンボタンとして表示するため、
+    /// 絞り込み用の FilteredSnippets は廃止し Categories のみを View にバインドする。
+    /// </summary>
+    public ObservableCollection<CheatSheetCategory> Categories { get; } = new();
 
     public MainViewModel(AppSettings settings, ICheatSheetProvider cheatSheet, DocumentService documents, ILogSink log)
     {
         Settings = settings;
-        _cheatSheet = cheatSheet;
         _documents = documents;
         _log = log;
 
         foreach (var c in cheatSheet.GetCategories()) Categories.Add(c);
-        RefreshSnippets();
     }
 
     public string Title => (IsDirty ? "* " : string.Empty) +
@@ -50,14 +49,6 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnFilePathChanged(string? value) => OnPropertyChanged(nameof(Title));
 
     partial void OnIsDirtyChanged(bool value) => OnPropertyChanged(nameof(Title));
-
-    partial void OnCheatSheetKeywordChanged(string value) => RefreshSnippets();
-
-    private void RefreshSnippets()
-    {
-        FilteredSnippets.Clear();
-        foreach (var item in _cheatSheet.Search(CheatSheetKeyword)) FilteredSnippets.Add(item);
-    }
 
     public void NewDocument()
     {

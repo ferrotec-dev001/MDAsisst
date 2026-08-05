@@ -6,17 +6,27 @@ using MDAsisst.Core.Settings;
 
 namespace MDAsisst.App.Views;
 
-/// <summary>アピアランス・動作・アップデートの設定画面（FR-WN-04〜13, FR-ST-03〜09）。</summary>
+/// <summary>
+/// アピアランス・動作・アップデートの設定画面（FR-WN-04〜13, FR-ST-03〜09）。
+/// Issue #1: 変更操作の都度 <see cref="_onLivePreview"/> を呼び、メイン画面へ即時反映する。
+/// キャンセル時は開いた時点のスナップショットへ復元する。
+/// </summary>
 public partial class SettingsWindow : Window
 {
     private readonly AppSettings _settings;
     private readonly App _app;
+    private readonly Action? _onLivePreview;
+    private readonly AppSettings _snapshot;
+    private bool _isLoading = true;
+    private bool _accepted;
 
-    public SettingsWindow(AppSettings settings, App app)
+    public SettingsWindow(AppSettings settings, App app, Action? onLivePreview = null)
     {
         InitializeComponent();
         _settings = settings;
         _app = app;
+        _onLivePreview = onLivePreview;
+        _snapshot = settings.Clone();   // Issue #1: キャンセル時に復元するための開いた時点の状態
 
         var fonts = Fonts.SystemFontFamilies
             .Select(f => f.Source)
@@ -26,6 +36,13 @@ public partial class SettingsWindow : Window
         PreviewFontBox.ItemsSource = fonts;
 
         LoadFromSettings();
+        _isLoading = false;
+
+        Closed += (_, _) =>
+        {
+            // OK 以外（キャンセル・×・Escape）で閉じた場合は必ず元の状態へ戻す。
+            if (!_accepted) RevertToSnapshot();
+        };
     }
 
     private void LoadFromSettings()
@@ -35,6 +52,8 @@ public partial class SettingsWindow : Window
         OpacityValue.Text = a.Opacity.ToString("P0", CultureInfo.CurrentCulture);
         WindowColorBox.Text = a.WindowColor;
         ForegroundColorBox.Text = a.ForegroundColor;
+        UpdateSwatch(WindowColorSwatch, a.WindowColor);
+        UpdateSwatch(ForegroundColorSwatch, a.ForegroundColor);
         EditorFontBox.Text = a.EditorFontFamily;
         EditorFontSizeBox.Text = a.EditorFontSize.ToString(CultureInfo.InvariantCulture);
         PreviewFontBox.Text = a.PreviewFontFamily;
@@ -58,25 +77,92 @@ public partial class SettingsWindow : Window
         VersionLabel.Text = $"現在のバージョン: v{_app.UpdateService.CurrentVersion}";
     }
 
+    private static void UpdateSwatch(System.Windows.Controls.Border swatch, string hex)
+    {
+        try
+        {
+            if (ColorConverter.ConvertFromString(hex) is Color c) { swatch.Background = new SolidColorBrush(c); return; }
+        }
+        catch (FormatException) { /* 無効な値は既定の外観のまま */ }
+        swatch.Background = Brushes.Gray;
+    }
+
+    // ---------- Issue #1: ライブプレビュー ----------
+
     private void Opacity_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (OpacityValue is not null)
             OpacityValue.Text = e.NewValue.ToString("P0", CultureInfo.CurrentCulture);
+        if (_isLoading) return;
+
+        _settings.Appearance.Opacity = e.NewValue;
+        _onLivePreview?.Invoke();
     }
+
+    private void WindowColorBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        => ApplyColorLive(WindowColorBox.Text, WindowColorSwatch, isWindowColor: true);
+
+    private void ForegroundColorBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        => ApplyColorLive(ForegroundColorBox.Text, ForegroundColorSwatch, isWindowColor: false);
+
+    private void ApplyColorLive(string text, System.Windows.Controls.Border swatch, bool isWindowColor)
+    {
+        if (_isLoading) return;
+        // Issue #2: 不正な途中入力（例: "#12"）ではプレビューを崩さず、確定した値のときだけ反映する。
+        if (string.IsNullOrWhiteSpace(text) || text[0] != '#' || text.Length is not (4 or 7 or 9)) return;
+
+        try
+        {
+            if (ColorConverter.ConvertFromString(text) is not Color c) return;
+            swatch.Background = new SolidColorBrush(c);
+            if (isWindowColor) _settings.Appearance.WindowColor = text;
+            else _settings.Appearance.ForegroundColor = text;
+            _onLivePreview?.Invoke();
+        }
+        catch (FormatException)
+        {
+            // 入力途中の不正な文字列。確定するまで無視する。
+        }
+    }
+
+    /// <summary>Issue #2: カラーコード手入力の代わりに Windows 標準の色選択ダイアログを使う。</summary>
+    private void PickWindowColor_Click(object sender, RoutedEventArgs e) => PickColor(WindowColorBox, isWindowColor: true);
+    private void PickForegroundColor_Click(object sender, RoutedEventArgs e) => PickColor(ForegroundColorBox, isWindowColor: false);
+
+    private void PickColor(System.Windows.Controls.TextBox targetBox, bool isWindowColor)
+    {
+        using var dialog = new System.Windows.Forms.ColorDialog { FullOpen = true };
+        try
+        {
+            if (ColorConverter.ConvertFromString(targetBox.Text) is Color current)
+                dialog.Color = System.Drawing.Color.FromArgb(current.A, current.R, current.G, current.B);
+        }
+        catch (FormatException) { /* 現在値が不正なら既定色から選択させる */ }
+
+        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+        var hex = $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
+        targetBox.Text = hex;   // TextChanged 経由でスウォッチ更新とライブプレビューが走る
+    }
+
+    private void Font_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isLoading) return;
+
+        if (!string.IsNullOrWhiteSpace(EditorFontBox.Text)) _settings.Appearance.EditorFontFamily = EditorFontBox.Text;
+        if (!string.IsNullOrWhiteSpace(PreviewFontBox.Text)) _settings.Appearance.PreviewFontFamily = PreviewFontBox.Text;
+        if (double.TryParse(EditorFontSizeBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var es))
+            _settings.Appearance.EditorFontSize = es;
+        if (double.TryParse(PreviewFontSizeBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ps))
+            _settings.Appearance.PreviewFontSize = ps;
+
+        _onLivePreview?.Invoke();
+    }
+
+    // ---------- 確定・取消 ----------
 
     private void Ok_Click(object sender, RoutedEventArgs e)
     {
-        var a = _settings.Appearance;
-        a.Opacity = OpacitySlider.Value;
-        a.WindowColor = SettingsValidator.NormalizeColor(WindowColorBox.Text, "#1E1E1E");
-        a.ForegroundColor = SettingsValidator.NormalizeColor(ForegroundColorBox.Text, "#FFFFFF");
-        a.EditorFontFamily = string.IsNullOrWhiteSpace(EditorFontBox.Text) ? a.EditorFontFamily : EditorFontBox.Text;
-        a.EditorFontSize = ParseDouble(EditorFontSizeBox.Text, a.EditorFontSize);
-        a.PreviewFontFamily = string.IsNullOrWhiteSpace(PreviewFontBox.Text) ? a.PreviewFontFamily : PreviewFontBox.Text;
-        a.PreviewFontSize = ParseDouble(PreviewFontSizeBox.Text, a.PreviewFontSize);
-        a.EnableAnimation = AnimationCheck.IsChecked == true;
-        a.Theme = ThemePreset.Custom;
-
         var b = _settings.Behavior;
         b.Topmost = TopmostCheck.IsChecked == true;
         b.MinimizeToTrayOnClose = TrayOnCloseCheck.IsChecked == true;
@@ -86,6 +172,8 @@ public partial class SettingsWindow : Window
         b.PreviewDebounceMs = ParseInt(DebounceBox.Text, b.PreviewDebounceMs);
         b.AutoSaveEnabled = AutoSaveCheck.IsChecked == true;
         b.AutoSaveIntervalSeconds = ParseInt(AutoSaveIntervalBox.Text, b.AutoSaveIntervalSeconds);
+        _settings.Appearance.EnableAnimation = AnimationCheck.IsChecked == true;
+        _settings.Appearance.Theme = ThemePreset.Custom;
 
         var startup = StartupCheck.IsChecked == true;
         if (startup != StartupRegistration.IsEnabled(_app.Log))
@@ -101,7 +189,28 @@ public partial class SettingsWindow : Window
                               : UpdateMode.Manual;
 
         SettingsValidator.Normalize(_settings);
+        _accepted = true;
         DialogResult = true;
+    }
+
+    private void Cancel_Click(object sender, RoutedEventArgs e)
+    {
+        // Closed イベントで RevertToSnapshot が走る（_accepted のまま false）。
+        DialogResult = false;
+    }
+
+    private void TitleBarClose_Click(object sender, RoutedEventArgs e)
+    {
+        DialogResult = false;
+        Close();
+    }
+
+    private void RevertToSnapshot()
+    {
+        _settings.Appearance = _snapshot.Appearance;
+        _settings.Behavior = _snapshot.Behavior;
+        _settings.Update = _snapshot.Update;
+        _onLivePreview?.Invoke();
     }
 
     private void Reset_Click(object sender, RoutedEventArgs e)
@@ -114,6 +223,7 @@ public partial class SettingsWindow : Window
         _settings.Behavior = defaults.Behavior;
         _settings.Update = defaults.Update;
         LoadFromSettings();
+        _onLivePreview?.Invoke();
     }
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
@@ -161,9 +271,6 @@ public partial class SettingsWindow : Window
             _settings.Update.LastCheckedUtc = DateTimeOffset.UtcNow;
         }
     }
-
-    private static double ParseDouble(string? text, double fallback)
-        => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : fallback;
 
     private static int ParseInt(string? text, int fallback)
         => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : fallback;
