@@ -96,15 +96,18 @@ Velopackのper-userインストール（`%LocalAppData%`＋未署名＋自己書
 | ISS-005 | Topmost が他アプリのフルスクリーン後に外れる場合がある | UAT で確認し、必要なら定期再適用 |
 | ISS-006 | 10,000行文書の再描画が約2.4秒（CI実測）かかりNFR-04未達 | **解決済み**: ADR-0005の暫定策（5,000行超で自動プレビュー一時停止）を恒久仕様として確定。想定文書規模は数百行のためADR-0005以上の対策は不要（2026-08-05確定） |
 | ISS-007 | v0.2.0実機で、更新直後に再起動すると `FileLoadException`（アクセス拒否）で起動不能になる場合がある | ADR-0008で暫定対策（`restart:true`）を実施したが、v0.2.1実機（SN11, EDR: Cybereason導入）で再発。真因はEDRによる誤検知と判明（ISS-008参照）。**根本対策としてADR-0009へ移行、解決済み**（2026-08-05） |
+| ISS-009 | v0.3.0 のリリース資産に、per-user 方式の `Ferrotec.MDAsisst-win-Setup.exe` と `Ferrotec.MDAsisst-win-Portable.zip` が Velopack により自動生成・添付されている。利用者が誤ってこれらを実行すると `%LocalAppData%` にインストールされ、ISS-008（EDRブロック）が再発する | **未解決**。暫定対応として操作説明書 3.1 節に警告を明記。恒久対応は `vpk pack` に `--noInst --noPortable` を追加して生成自体を止めること（次回リリースで対応可、要判断） |
 | ISS-008 | EDR（Cybereason）が、`%LocalAppData%`配下の未署名・自己書き換え実行ファイル（Velopackのper-userインストール）を高リスクと判定し、通知なしにDLLロードをブロック（`ACCESS_DENIED`）する | **解決済み**: ADR-0009でインストール先をProgram Files（per-machine, MSI）に変更し、更新の適用も無人自動ではなくユーザー同意＋UAC確認を必須化（2026-08-05） |
 
 ## v0.3.0 リリース前チェックリスト（未実施）
 
 ADR-0009 の変更は配布方式そのものを変えるため、リリース時に以下の実機確認が必要。
 
-- [ ] Release ワークフローが `.msi` を生成し、GitHub Releases のアセットとして
-      アップロードされることを確認（`vpk pack --msi` の出力が `vpk upload github` の
-      対象に含まれるかは実行して確認する）
+- [x] Release ワークフローが `.msi` を生成し、GitHub Releases のアセットとして
+      アップロードされることを確認 → **確認済み（v0.3.0, 2026-08-05）**。
+      実際のアセット名は `Ferrotec.MDAsisst-win.msi`（62.0MB）。
+      ただし per-user 用の `Ferrotec.MDAsisst-win-Setup.exe` と
+      `Ferrotec.MDAsisst-win-Portable.zip` も同時に生成・添付される（ISS-009 参照）
 - [ ] 旧 v0.2.x（per-user）をアンインストールしてから `.msi` でインストールできること
       （操作説明書 3.0 節の移行手順どおり）
 - [ ] SN11（EDR: Cybereason 導入端末）で正常に起動すること = ISS-008 の解消確認
