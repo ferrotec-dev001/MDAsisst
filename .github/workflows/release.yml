@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test before release
+        run: dotnet test MDAsisst.sln -c Release
+
+      - name: Publish (self-contained)
+        run: >
+          dotnet publish src/MDAsisst.App/MDAsisst.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:Version=${{ steps.ver.outputs.version }}
+          -o publish
+
+      - name: Install vpk
+        run: dotnet tool install -g vpk --version 1.2.0
+
+      - name: Download existing releases (for delta)
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }}
+        continue-on-error: true
+
+      - name: Pack
+        run: >
+          vpk pack
+          -u Ferrotec.MDAsisst
+          -v ${{ steps.ver.outputs.version }}
+          -p publish
+          -e MDAsisst.exe
+          --packTitle "MDAsisst"
+          --packAuthors "Ferrotec Corporation"
+          --channel win
+
+      - name: Upload to GitHub Releases
+        run: >
+          vpk upload github
+          --repoUrl https://github.com/${{ github.repository }}
+          --publish
+          --releaseName "MDAsisst ${{ steps.ver.outputs.version }}"
+          --tag ${{ github.ref_name }}
+          --token ${{ secrets.GITHUB_TOKEN }}

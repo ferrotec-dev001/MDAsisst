@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A883B25F-221A-4D59-BD73-37CC2C98A1AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDAsisst.App", "src\MDAsisst.App\MDAsisst.App.csproj", "{9C94377E-9EB0-47E0-8EBF-3885FCA09DB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDAsisst.Core.Tests", "src\MDAsisst.Core.Tests\MDAsisst.Core.Tests.csproj", "{D3C07E05-3EEB-4534-A60A-52CDA654CD0C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDAsisst.Core", "src\MDAsisst.Core\MDAsisst.Core.csproj", "{44E1E5CE-09A0-4DA8-B2FF-FCFA1A64EB84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDAsisst.Rendering.Tests", "src\MDAsisst.Rendering.Tests\MDAsisst.Rendering.Tests.csproj", "{9895DAD1-E789-4D1B-A2D9-F244C7F41C15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDAsisst.Rendering", "src\MDAsisst.Rendering\MDAsisst.Rendering.csproj", "{DE892FB9-5B42-4A00-8EEC-37EDDFC610D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDAsisst.Updating", "src\MDAsisst.Updating\MDAsisst.Updating.csproj", "{A5DB54DB-FAB2-4343-87DF-288AC3383D1B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C94377E-9EB0-47E0-8EBF-3885FCA09DB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C94377E-9EB0-47E0-8EBF-3885FCA09DB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C94377E-9EB0-47E0-8EBF-3885FCA09DB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C94377E-9EB0-47E0-8EBF-3885FCA09DB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3C07E05-3EEB-4534-A60A-52CDA654CD0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3C07E05-3EEB-4534-A60A-52CDA654CD0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3C07E05-3EEB-4534-A60A-52CDA654CD0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3C07E05-3EEB-4534-A60A-52CDA654CD0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44E1E5CE-09A0-4DA8-B2FF-FCFA1A64EB84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44E1E5CE-09A0-4DA8-B2FF-FCFA1A64EB84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44E1E5CE-09A0-4DA8-B2FF-FCFA1A64EB84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44E1E5CE-09A0-4DA8-B2FF-FCFA1A64EB84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9895DAD1-E789-4D1B-A2D9-F244C7F41C15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9895DAD1-E789-4D1B-A2D9-F244C7F41C15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9895DAD1-E789-4D1B-A2D9-F244C7F41C15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9895DAD1-E789-4D1B-A2D9-F244C7F41C15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE892FB9-5B42-4A00-8EEC-37EDDFC610D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE892FB9-5B42-4A00-8EEC-37EDDFC610D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE892FB9-5B42-4A00-8EEC-37EDDFC610D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE892FB9-5B42-4A00-8EEC-37EDDFC610D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5DB54DB-FAB2-4343-87DF-288AC3383D1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5DB54DB-FAB2-4343-87DF-288AC3383D1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5DB54DB-FAB2-4343-87DF-288AC3383D1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5DB54DB-FAB2-4343-87DF-288AC3383D1B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9C94377E-9EB0-47E0-8EBF-3885FCA09DB6} = {A883B25F-221A-4D59-BD73-37CC2C98A1AF}
+		{D3C07E05-3EEB-4534-A60A-52CDA654CD0C} = {A883B25F-221A-4D59-BD73-37CC2C98A1AF}
+		{44E1E5CE-09A0-4DA8-B2FF-FCFA1A64EB84} = {A883B25F-221A-4D59-BD73-37CC2C98A1AF}
+		{9895DAD1-E789-4D1B-A2D9-F244C7F41C15} = {A883B25F-221A-4D59-BD73-37CC2C98A1AF}
+		{DE892FB9-5B42-4A00-8EEC-37EDDFC610D1} = {A883B25F-221A-4D59-BD73-37CC2C98A1AF}
+		{A5DB54DB-FAB2-4343-87DF-288AC3383D1B} = {A883B25F-221A-4D59-BD73-37CC2C98A1AF}
+	EndGlobalSection
+EndGlobal

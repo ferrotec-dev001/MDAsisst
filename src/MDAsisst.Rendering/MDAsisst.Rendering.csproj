@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MDAsisst.Core\MDAsisst.Core.csproj" />
+  </ItemGroup>
+</Project>

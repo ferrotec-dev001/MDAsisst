@@ -1,0 +1,135 @@
+<Window x:Class="MDAsisst.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
+        Title="MDAsisst"
+        Width="900" Height="600" MinWidth="320" MinHeight="200"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        ResizeMode="CanResize"
+        ShowInTaskbar="True"
+        Background="#1E1E1E"
+        Foreground="#FFFFFF">
+
+    <!-- ADR-0004: AllowsTransparency は使わず WindowChrome + WS_EX_LAYERED で半透明化する -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="30" ResizeBorderThickness="8"
+                            GlassFrameThickness="0" CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="24"/>
+        </Grid.RowDefinitions>
+
+        <tb:TaskbarIcon x:Name="TrayIcon" ToolTipText="MDAsisst" TrayMouseDoubleClick="Tray_DoubleClick">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="表示(_S)" Click="Tray_Show"/>
+                    <MenuItem Header="設定(_O)..." Click="OpenSettings_Click"/>
+                    <Separator/>
+                    <MenuItem Header="終了(_X)" Click="Exit_Click"/>
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
+
+        <!-- タイトルバー -->
+        <Grid Grid.Row="0" Background="#252526">
+            <TextBlock x:Name="TitleText" Text="MDAsisst" Margin="10,0,0,0"
+                       VerticalAlignment="Center" Foreground="#DDDDDD" FontSize="12"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="&#xE713;" FontFamily="Segoe MDL2 Assets" ToolTip="設定"
+                        Click="OpenSettings_Click" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Width="34" Background="Transparent" BorderThickness="0" Foreground="#DDDDDD"/>
+                <Button Content="&#xE921;" FontFamily="Segoe MDL2 Assets" ToolTip="最小化"
+                        Click="Minimize_Click" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Width="34" Background="Transparent" BorderThickness="0" Foreground="#DDDDDD"/>
+                <Button Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" ToolTip="トレイに格納"
+                        Click="Close_Click" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        Width="34" Background="Transparent" BorderThickness="0" Foreground="#DDDDDD"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ツールバー -->
+        <ToolBarTray Grid.Row="1" Background="#2D2D30" IsLocked="True">
+            <ToolBar Background="#2D2D30" ToolBarTray.IsLocked="True">
+                <Button Content="新規" Click="New_Click"/>
+                <Button Content="開く" Click="Open_Click"/>
+                <Button Content="保存" Click="Save_Click"/>
+                <Separator/>
+                <Button Content="B" FontWeight="Bold" ToolTip="太字 (Ctrl+B)" Click="Bold_Click"/>
+                <Button Content="I" FontStyle="Italic" ToolTip="斜体 (Ctrl+I)" Click="Italic_Click"/>
+                <Button Content="Link" ToolTip="リンク (Ctrl+K)" Click="Link_Click"/>
+                <Button Content="表" ToolTip="表の挿入" Click="Table_Click"/>
+                <Separator/>
+                <ComboBox x:Name="LayoutSelector" Width="120" SelectionChanged="Layout_Changed">
+                    <ComboBoxItem Content="エディタのみ"/>
+                    <ComboBoxItem Content="プレビューのみ"/>
+                    <ComboBoxItem Content="左右分割" IsSelected="True"/>
+                </ComboBox>
+            </ToolBar>
+        </ToolBarTray>
+
+        <!-- 本体 -->
+        <Grid Grid.Row="2" x:Name="ContentGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="EditorColumn" Width="*"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition x:Name="PreviewColumn" Width="*"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition x:Name="CheatColumn" Width="240"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox x:Name="Editor" Grid.Column="0"
+                     AcceptsReturn="True" AcceptsTab="True"
+                     TextWrapping="NoWrap"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                     Background="#1E1E1E" Foreground="#FFFFFF" CaretBrush="#FFFFFF"
+                     BorderThickness="0" Padding="8"
+                     FontFamily="Consolas" FontSize="14"
+                     TextChanged="Editor_TextChanged"
+                     PreviewKeyDown="Editor_PreviewKeyDown"/>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#3F3F46"/>
+
+            <FlowDocumentScrollViewer x:Name="Preview" Grid.Column="2"
+                                      Background="Transparent" Foreground="#FFFFFF"
+                                      VerticalScrollBarVisibility="Auto"
+                                      IsToolBarVisible="False"/>
+
+            <GridSplitter Grid.Column="3" Width="4" HorizontalAlignment="Stretch" Background="#3F3F46"/>
+
+            <DockPanel Grid.Column="4" Background="#252526">
+                <TextBox x:Name="CheatSearch" DockPanel.Dock="Top" Margin="6"
+                         Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#3F3F46"
+                         TextChanged="CheatSearch_TextChanged"
+                         ToolTip="チートシートを検索"/>
+                <ListBox x:Name="CheatList" Background="Transparent" BorderThickness="0"
+                         Foreground="#FFFFFF" MouseDoubleClick="CheatList_DoubleClick">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="2,4">
+                                <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="#FFD54F"/>
+                                <TextBlock Text="{Binding Example}" FontFamily="Consolas" FontSize="11"
+                                           Foreground="#CCCCCC" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+
+        <!-- ステータスバー -->
+        <Grid Grid.Row="3" Background="#007ACC">
+            <TextBlock x:Name="StatusText" Margin="8,0,0,0" VerticalAlignment="Center"
+                       Foreground="White" FontSize="11" Text="準備完了"/>
+            <TextBlock x:Name="VersionText" HorizontalAlignment="Right" Margin="0,0,8,0"
+                       VerticalAlignment="Center" Foreground="White" FontSize="11"/>
+        </Grid>
+    </Grid>
+</Window>

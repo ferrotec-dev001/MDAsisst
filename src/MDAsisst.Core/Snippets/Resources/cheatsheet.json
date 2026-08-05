@@ -1,0 +1,221 @@
+[
+  {
+    "name": "見出し",
+    "items": [
+      {
+        "title": "見出し1",
+        "example": "# 見出し1",
+        "insertText": "# $0",
+        "trigger": "#",
+        "description": "最上位の見出し",
+        "keywords": [
+          "heading",
+          "h1",
+          "タイトル"
+        ]
+      },
+      {
+        "title": "見出し2",
+        "example": "## 見出し2",
+        "insertText": "## $0",
+        "trigger": "##",
+        "description": "章レベルの見出し",
+        "keywords": [
+          "heading",
+          "h2"
+        ]
+      },
+      {
+        "title": "見出し3",
+        "example": "### 見出し3",
+        "insertText": "### $0",
+        "trigger": "###",
+        "description": "節レベルの見出し",
+        "keywords": [
+          "heading",
+          "h3"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "装飾",
+    "items": [
+      {
+        "title": "太字",
+        "example": "**太字**",
+        "insertText": "**$SEL$0**",
+        "trigger": "**",
+        "description": "強い強調",
+        "keywords": [
+          "bold",
+          "strong"
+        ]
+      },
+      {
+        "title": "斜体",
+        "example": "*斜体*",
+        "insertText": "*$SEL$0*",
+        "trigger": "*",
+        "description": "強調",
+        "keywords": [
+          "italic",
+          "em"
+        ]
+      },
+      {
+        "title": "取消線",
+        "example": "~~取消線~~",
+        "insertText": "~~$SEL$0~~",
+        "trigger": "~~",
+        "description": "打ち消し",
+        "keywords": [
+          "strike"
+        ]
+      },
+      {
+        "title": "インラインコード",
+        "example": "`code`",
+        "insertText": "`$SEL$0`",
+        "trigger": "`",
+        "description": "文中のコード",
+        "keywords": [
+          "code"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "リスト",
+    "items": [
+      {
+        "title": "箇条書き",
+        "example": "- 項目",
+        "insertText": "- $0",
+        "trigger": "-",
+        "description": "順序なしリスト",
+        "keywords": [
+          "list",
+          "ul"
+        ]
+      },
+      {
+        "title": "番号付きリスト",
+        "example": "1. 項目",
+        "insertText": "1. $0",
+        "trigger": "1.",
+        "description": "順序つきリスト",
+        "keywords": [
+          "list",
+          "ol"
+        ]
+      },
+      {
+        "title": "タスクリスト",
+        "example": "- [ ] やること",
+        "insertText": "- [ ] $0",
+        "trigger": "- [",
+        "description": "チェックボックス",
+        "keywords": [
+          "task",
+          "todo"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "リンク・画像",
+    "items": [
+      {
+        "title": "リンク",
+        "example": "[タイトル](https://example.com)",
+        "insertText": "[$SEL$0](URL)",
+        "trigger": "[",
+        "description": "ハイパーリンク",
+        "keywords": [
+          "link",
+          "url"
+        ]
+      },
+      {
+        "title": "画像",
+        "example": "![代替テキスト](image.png)",
+        "insertText": "![$0](画像パス)",
+        "trigger": "![",
+        "description": "画像の埋め込み",
+        "keywords": [
+          "image",
+          "img"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "コード",
+    "items": [
+      {
+        "title": "コードブロック",
+        "example": "```csharp\nvar x = 1;\n```",
+        "insertText": "```$0\n\n```",
+        "trigger": "```",
+        "description": "言語指定つきコードブロック",
+        "keywords": [
+          "code",
+          "fence"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "表",
+    "items": [
+      {
+        "title": "表(2列)",
+        "example": "| 見出し1 | 見出し2 |\n| --- | --- |\n| 値1 | 値2 |",
+        "insertText": "| $0 |  |\n| --- | --- |\n|  |  |",
+        "trigger": "|",
+        "description": "パイプ記法の表",
+        "keywords": [
+          "table"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "その他",
+    "items": [
+      {
+        "title": "引用",
+        "example": "> 引用文",
+        "insertText": "> $0",
+        "trigger": ">",
+        "description": "引用ブロック",
+        "keywords": [
+          "quote"
+        ]
+      },
+      {
+        "title": "水平線",
+        "example": "---",
+        "insertText": "---\n$0",
+        "trigger": "---",
+        "description": "区切り線",
+        "keywords": [
+          "hr",
+          "rule"
+        ]
+      },
+      {
+        "title": "強制改行",
+        "example": "行末に半角スペース2つ",
+        "insertText": "  \n$0",
+        "trigger": "",
+        "description": "同一段落内で改行する",
+        "keywords": [
+          "break",
+          "改行"
+        ]
+      }
+    ]
+  }
+]
