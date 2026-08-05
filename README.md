@@ -25,6 +25,7 @@ Markdown の書き方を半透明ウィンドウで表示してくれるサポ�
 | [`docs/test-report.md`](docs/test-report.md) | テスト実施報告 |
 | [`docs/release.md`](docs/release.md) | リリース手順 |
 | [`docs/tasks.md`](docs/tasks.md) | 開発タスクと進捗 |
+| [`docs/operation-manual.md`](docs/operation-manual.md) | 操作説明書（エンドユーザー向け） |
 
 ## ビルド
 

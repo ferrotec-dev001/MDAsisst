@@ -36,8 +36,18 @@
 - [ ] メモリ実測（NFR-02）・起動時間計測（NFR-03）
 - [ ] **プレビュー応答性の実機計測（NFR-04, ADR-0006）**: 対象PCで5,000行文書を編集し500ms以内か確認
 - [ ] オフライン動作確認（NFR-05）
-- [ ] 操作説明書（`docs/operation-manual.md`）の作成
+- [x] 操作説明書（`docs/operation-manual.md`）の作成（v1.0、2026-08-05）
 - [ ] UAT シナリオ作成と実施 → 指摘対応
+
+## インストーラーに関する状況（2026-08-05 時点）
+
+- サンドボックス環境（Linux）で `dotnet publish -r win-x64 --self-contained` は成功することを確認した。
+- しかし **`vpk pack` は実行ホストのOSに応じたパッケージしか生成できず、Linux上ではLinux用
+  AppImageしか作れない**（Windows向けインストーラーはビルドできない）ことを確認した。
+- Windows用インストーラー（`MDAsisst-win-Setup.exe`）の生成には、以下のいずれかが必要：
+  1. 実機Windows環境での `vpk pack` 実行
+  2. `.github/workflows/release.yml`（`windows-latest` ランナー）によるタグpush起動のCIビルド
+- **本タスクは未着手**。リリース判断（バージョンタグ付与）はユーザーの承認後に実施する。
 
 ## 既知の課題
 
