@@ -70,6 +70,21 @@ ADR-0003 採用の Velopack は「`%LocalAppData%` への per-user インスト�
 - `docs/operation-manual.md` のインストール手順・更新手順を、`.msi` の利用と UAC 確認の説明に
   更新する。
 
+## 検証済み事項（Velopack 1.2.0 ソース確認、2026-08-05）
+
+本決定は「Program Files に置くと Velopack の更新が動かなくなるのではないか」という懸念を伴うため、
+採用バージョン（`vpk` / Velopack **1.2.0**）の実装を確認し、以下を確定した。
+
+| 確認項目 | 結果 | 根拠 |
+| --- | --- | --- |
+| `--msi` / `--instLocation` が 1.2.0 で利用可能か | **可能** | `src/vpk/Velopack.Vpk/Commands/Packaging/WindowsPackCommand.cs` に両オプションの定義あり |
+| `PerMachine` の指定値が存在するか | **存在する** | `InstallLocation` enum は `None / PerUser / PerMachine / Either` |
+| `PerMachine` が Program Files に入るか | **入る** | `MsiBuilder` が `InstallForAllUsers = InstLocation.HasFlag(PerMachine)` を WiX テンプレートへ渡す |
+| Program Files への更新適用が権限不足で失敗しないか | **失敗しない（自動昇格する）** | `src/bins/src/commands/apply_windows_impl.rs`: ルートディレクトリが書き込み不可の場合、`run_process_as_admin` で自分自身を昇格起動し、完了を最大10分待機する実装になっている |
+
+すなわち per-machine インストールでも更新経路は成立し、その際に **UAC 昇格ダイアログが出る**。
+これは本 ADR の狙い（更新を必ずユーザーの同意のもとで行う）と一致するため、仕様として許容する。
+
 ## 代替案と却下理由
 
 - **現状維持（per-user + 無人自動適用）**: EDR 誤検知の再発リスクが残ったまま。却下。

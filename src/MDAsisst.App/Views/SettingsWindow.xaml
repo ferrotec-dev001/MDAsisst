@@ -128,7 +128,8 @@
             <TabItem Header="アップデート">
                 <StackPanel Margin="12">
                     <TextBlock Text="更新方式" Margin="0,4"/>
-                    <RadioButton x:Name="UpdateAuto" Content="自動（バックグラウンドで確認・適用）" Margin="0,4"/>
+                    <!-- ADR-0009: 「自動」は確認のみ。適用は必ず同意ダイアログを経る（無人適用しない） -->
+                    <RadioButton x:Name="UpdateAuto" Content="自動（バックグラウンドで確認のみ／適用は確認後）" Margin="0,4"/>
                     <RadioButton x:Name="UpdateManual" Content="手動（このボタンで確認）" Margin="0,4"/>
                     <RadioButton x:Name="UpdateDisabled" Content="不要（ネットワークへ接続しない）" Margin="0,4"/>
 
