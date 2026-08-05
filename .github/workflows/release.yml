@@ -41,6 +41,10 @@ jobs:
         continue-on-error: true
 
       - name: Pack
+        # ADR-0009: Program Files への per-machine インストールに変更。
+        # --msi でMSIインストーラーを追加生成し、--instLocation PerMachine で
+        # インストール先を Program Files\Ferrotec Corporation\MDAsisst（要管理者権限）に固定する。
+        # 配布・案内は Setup.exe ではなく .msi を用いること（Setup.exe は per-user 固定のため）。
         run: >
           vpk pack
           -u Ferrotec.MDAsisst
@@ -50,6 +54,8 @@ jobs:
           --packTitle "MDAsisst"
           --packAuthors "Ferrotec Corporation"
           --channel win
+          --msi
+          --instLocation PerMachine
 
       - name: Upload to GitHub Releases
         run: >

@@ -20,6 +20,5 @@ public sealed class NullUpdateService : IUpdateService
     public Task<bool> DownloadAsync(UpdateCheckResult update, IProgress<int>? progress = null, CancellationToken ct = default)
         => Task.FromResult(false);
 
-    public bool ApplyOnExit(UpdateCheckResult update) => false;
     public bool ApplyAndRestart(UpdateCheckResult update) => false;
 }

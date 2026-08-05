@@ -247,7 +247,9 @@ public partial class SettingsWindow : Window
                 return;
             }
 
-            if (MessageBox.Show(this, $"新しいバージョン v{result.Version} があります。今すぐ更新しますか？",
+            if (MessageBox.Show(this,
+                    $"新しいバージョン v{result.Version} があります。今すぐ更新しますか？\n" +
+                    "（インストール先が Program Files のため、管理者権限の確認が表示されます）",
                     "MDAsisst", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             {
                 UpdateStatus.Text = $"v{result.Version} が利用可能です。";

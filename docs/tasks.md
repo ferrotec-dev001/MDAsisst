@@ -66,6 +66,21 @@ UAT前レビューで登録された10件のGitHub Issueすべてに対応した
   2. `.github/workflows/release.yml`（`windows-latest` ランナー）によるタグpush起動のCIビルド
 - **本タスクは未着手**。リリース判断（バージョンタグ付与）はユーザーの承認後に実施する。
 
+## v0.3.0: Program Files インストール化・更新の同意必須化（2026-08-05）
+
+フェローテック社内端末（SN11, EDR: Cybereason）で v0.2.1 実機起動不能が再発。原因調査の結果、
+Velopackのper-userインストール（`%LocalAppData%`＋未署名＋自己書き換え）がEDRの誤検知条件に
+該当することが判明した（ISS-011）。ADR-0009に基づき以下を実施した。
+
+- `.github/workflows/release.yml`: `vpk pack` に `--msi --instLocation PerMachine` を追加し、
+  Program Files への per-machine インストール用MSIを生成するよう変更
+- `IUpdateService.ApplyOnExit`（無人バックグラウンド自動適用）を削除
+- 「自動」更新モードの意味を「バックグラウンドでの確認のみ」に再定義し、適用前に必ず
+  同意ダイアログ（`MessageBox` Yes/No）を表示するよう `MainWindow.RunUpdateFlowAsync` を変更
+  （設定画面の手動確認フローと同一の同意パターンに統一）
+- `docs/requirements.md`（NFR-01, FR-ST-05, FR-ST-10）、`docs/architecture.md`、
+  `docs/operation-manual.md` をADR-0009に合わせて更新
+
 ## 既知の課題
 
 | ID | 内容 | 状態 |
@@ -76,4 +91,5 @@ UAT前レビューで登録された10件のGitHub Issueすべてに対応した
 | ISS-004 | IME 変換中の補完誤爆 | `Key.ImeProcessed` で抑止。実機確認が必要 |
 | ISS-005 | Topmost が他アプリのフルスクリーン後に外れる場合がある | UAT で確認し、必要なら定期再適用 |
 | ISS-006 | 10,000行文書の再描画が約2.4秒（CI実測）かかりNFR-04未達 | **解決済み**: ADR-0005の暫定策（5,000行超で自動プレビュー一時停止）を恒久仕様として確定。想定文書規模は数百行のためADR-0005以上の対策は不要（2026-08-05確定） |
-| ISS-007 | v0.2.0実機で、更新直後に再起動すると `FileLoadException`（アクセス拒否）で起動不能になる場合がある | **解決済み**: `WaitExitThenApplyUpdates` の `restart` を `true` に変更し、展開完了後にVelopack自身が再起動するよう修正（ADR-0008, 2026-08-05） |
+| ISS-007 | v0.2.0実機で、更新直後に再起動すると `FileLoadException`（アクセス拒否）で起動不能になる場合がある | ADR-0008で暫定対策（`restart:true`）を実施したが、v0.2.1実機（SN11, EDR: Cybereason導入）で再発。真因はEDRによる誤検知と判明（ISS-011参照）。**根本対策としてADR-0009へ移行、解決済み**（2026-08-05） |
+| ISS-011 | EDR（Cybereason）が、`%LocalAppData%`配下の未署名・自己書き換え実行ファイル（Velopackのper-userインストール）を高リスクと判定し、通知なしにDLLロードをブロック（`ACCESS_DENIED`）する | **解決済み**: ADR-0009でインストール先をProgram Files（per-machine, MSI）に変更し、更新の適用も無人自動ではなくユーザー同意＋UAC確認を必須化（2026-08-05） |

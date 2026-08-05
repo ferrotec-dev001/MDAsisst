@@ -126,16 +126,30 @@ flowchart LR
 ```csharp
 public interface IUpdateService
 {
-    /// <summary>更新の有無を確認する。オフライン等の失敗時は null を返し、例外を投げない。</summary>
-    Task<UpdateCheckResult?> CheckAsync(CancellationToken ct);
+    bool IsInstalled { get; }
+    string CurrentVersion { get; }
 
-    /// <summary>更新を適用する。適用後の再起動タイミングは呼び出し側が決める。</summary>
-    Task<bool> ApplyAsync(UpdateCheckResult update, IProgress<int>? progress, CancellationToken ct);
+    /// <summary>更新の有無を確認する。オフライン等の失敗時は null を返し、例外を投げない。</summary>
+    Task<UpdateCheckResult?> CheckAsync(CancellationToken ct = default);
+
+    Task<bool> DownloadAsync(UpdateCheckResult update, IProgress<int>? progress = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// ダウンロード済み更新を今すぐ適用して再起動する。
+    /// ADR-0009: 呼び出し側は必ずユーザーの同意ダイアログを経てからこのメソッドを呼ぶこと。
+    /// 無人・バックグラウンドで自動適用する経路（旧 ApplyOnExit）は提供しない。
+    /// </summary>
+    bool ApplyAndRestart(UpdateCheckResult update);
 }
 ```
 
 - `mode = Disabled` の場合は DI で `NullUpdateService` を注入し、通信経路自体を持たない（FR-ST-07）。
-- `mode = Auto` は起動 60 秒後に1回＋以後 24 時間ごとに確認。
+- `mode = Auto` は起動 60 秒後に1回＋以後 24 時間ごとに**バックグラウンドで確認のみ**行う。確認結果が
+  「更新あり」でも、ダウンロード・適用は必ず確認ダイアログでユーザーの同意を得てから実行する（ADR-0009）。
+  `mode = Manual` は設定画面の「更新を確認」ボタン操作でのみ、同じ同意フローを通る。
+- インストール先は Program Files（per-machine, MSI, ADR-0009）のため、`ApplyAndRestart` の実行時に
+  Windows の管理者権限確認（UAC）が表示される。これは「同意なしに更新しない」という要件を
+  OS レベルでも担保する二重の同意ゲートとして機能する。
 - 例外は `ILogSink` に記録し、UI にはトースト等で控えめに通知する。
 
 ## 8. ロギング

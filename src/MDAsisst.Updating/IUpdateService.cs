@@ -25,9 +25,10 @@ public interface IUpdateService
 
     Task<bool> DownloadAsync(UpdateCheckResult update, IProgress<int>? progress = null, CancellationToken ct = default);
 
-    /// <summary>ダウンロード済み更新をアプリ終了時に適用する（業務を中断しない既定動作）。</summary>
-    bool ApplyOnExit(UpdateCheckResult update);
-
-    /// <summary>ダウンロード済み更新を今すぐ適用して再起動する。</summary>
+    /// <summary>
+    /// ダウンロード済み更新を今すぐ適用して再起動する。
+    /// ADR-0009: 更新の適用は必ずユーザーの同意（確認ダイアログ）を得た直後にこのメソッドを
+    /// 呼び出す形で行う。無人・バックグラウンドでの自動適用（旧 ApplyOnExit）は提供しない。
+    /// </summary>
     bool ApplyAndRestart(UpdateCheckResult update);
 }

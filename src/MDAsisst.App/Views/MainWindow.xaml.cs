@@ -558,10 +558,23 @@ public partial class MainWindow : Window
             _app.Settings.Save(Settings);
             if (update is null) return;
 
-            if (await _app.UpdateService.DownloadAsync(update) && _app.UpdateService.ApplyOnExit(update))
-            {
-                Dispatcher.Invoke(() => SetStatus($"v{update.Version} をダウンロードしました。アプリを閉じると自動的に更新・再起動します。"));
-            }
+            // ADR-0009: 「自動」はバックグラウンドでの確認のみを意味する。ダウンロード・適用は
+            // 必ずユーザーの同意を得てから行い、無人で自動適用しない（インストール先が
+            // Program Files のため、適用時は管理者権限の確認（UAC）も表示される）。
+            SetStatus($"v{update.Version} が利用可能です。");
+            var answer = MessageBox.Show(this,
+                $"新しいバージョン v{update.Version} があります。今すぐ更新しますか？\n" +
+                "（インストール先が Program Files のため、管理者権限の確認が表示されます）",
+                "MDAsisst", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes) return;
+
+            if (!ConfirmDiscardChanges()) return;
+
+            var progress = new Progress<int>(p => SetStatus($"ダウンロード中... {p}%"));
+            if (await _app.UpdateService.DownloadAsync(update, progress))
+                _app.UpdateService.ApplyAndRestart(update);
+            else
+                SetStatus("ダウンロードに失敗しました。ネットワークを確認してください。");
         }
         catch (Exception ex)
         {
