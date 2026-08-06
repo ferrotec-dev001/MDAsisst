@@ -144,15 +144,15 @@ ADR-0009 の変更は配布方式そのものを変えるため、リリース�
 - [ ] 設定（`%APPDATA%\MDAsisst\settings.json`）が移行後も引き継がれること
 - [ ] v0.3.0 → v0.3.1 の更新で、同意ダイアログ → UAC → 再起動 の流れが成立すること
 
-## v0.3.3（予定）: per-user資産の生成停止（ISS-009, ADR-0012）
+## v0.3.3: per-user資産の生成停止（ISS-009, ADR-0012）
 
-- `.github/workflows/release.yml`: `vpk pack` に `--noInst --noPortable` を追加。
-  `Ferrotec.MDAsisst-win-Setup.exe` / `Ferrotec.MDAsisst-win-Portable.zip` を
-  生成しないようにした。`.msi` と full/delta の `.nupkg`／`RELEASES` 系ファイルは
-  引き続き生成する（`.nupkg`はCheckAsyncによる更新確認に必要、ADR-0011参照）。
-- リリース資産が `.msi` のみになることをリリース実行結果で確認する必要がある
-  （`--noInst` が `--msi` のビルドに悪影響を与えないかは実機のWindowsランナーで
-  要確認。問題があれば`vpk pack`後・アップロード前にファイルを明示削除する
-  フォールバックへ切り替える）。
-- 確認後、`docs/operation-manual.md` 3.1節の「使用禁止アセット」に関する警告文を
+- 1回目の実行（`vpk pack` に `--noInst --noPortable` を追加）は **Pack ステップで失敗**。
+  Velopack CLI 1.2.0は `--noInst` と `--noPortable` の同時指定に対応しておらず、
+  `Cannot use '--noPortable' and '--noInst' options together` で停止することが判明した。
+- 対策として `vpk pack` は ADR-0009 時点の構成（`--msi --instLocation PerMachine` のみ）に戻し、
+  代わりに Pack 成功後・Upload 実行前に `Setup.exe` / `Portable.zip` を出力フォルダから
+  削除するステップ（`Remove per-user distributables`）を追加。2回目の実行で成功し、
+  GitHub Releases のアセットが `.msi` / `.nupkg`（full・delta）/ `RELEASES` 系ファイルのみに
+  なることを確認した。詳細は **ADR-0012**（検証結果を追記済み）を参照。
+- 残作業: `docs/operation-manual.md` 3.1節の「使用禁止アセット」に関する警告文を
   「そもそも存在しない」旨に簡略化する。

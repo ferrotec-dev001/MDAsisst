@@ -45,11 +45,10 @@ jobs:
         # --msi でMSIインストーラーを追加生成し、--instLocation PerMachine で
         # インストール先を Program Files\Ferrotec Corporation\MDAsisst（要管理者権限）に固定する。
         # 配布・案内は Setup.exe ではなく .msi を用いること（Setup.exe は per-user 固定のため）。
-        # ADR-0012 (ISS-009): --noInst / --noPortable で per-user 用の Setup.exe と
-        # Portable.zip の生成自体を止める。誤って実行すると %LocalAppData% への
-        # per-user インストールとなり ISS-008（EDRブロック）が再発するため。
-        # full/delta の .nupkg と RELEASES 系ファイルは、更新の有無を確認する
-        # CheckAsync（ADR-0011、適用は行わずMSI再配布に一本化）に必要なため引き続き生成する。
+        # ADR-0012 (ISS-009): vpk 1.2.0 は --noInst と --noPortable を同時指定できない
+        # （"Cannot use '--noPortable' and '--noInst' options together" でPackが失敗する。
+        # v0.3.3実機検証で確認済み）。そのためPack自体は変更せず、次のクリーンアップ手順で
+        # per-user用資産のみをアップロード対象から除外する。
         run: >
           vpk pack
           -u Ferrotec.MDAsisst
@@ -61,8 +60,16 @@ jobs:
           --channel win
           --msi
           --instLocation PerMachine
-          --noInst
-          --noPortable
+
+      - name: Remove per-user distributables (ISS-009, ADR-0012)
+        # vpk upload github はこの出力フォルダの中身をそのままアップロードするため、
+        # per-user方式のSetup.exe/Portable.zipをここで削除しておけば、GitHub Releases
+        # には .msi と full/delta の .nupkg（ADR-0011のCheckAsync用）のみが公開される。
+        shell: pwsh
+        run: |
+          Remove-Item -Path "Releases/*-Setup.exe" -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "Releases/*-Portable.zip" -Force -ErrorAction SilentlyContinue
+          Get-ChildItem "Releases" | Format-Table Name, Length
 
       - name: Upload to GitHub Releases
         run: >

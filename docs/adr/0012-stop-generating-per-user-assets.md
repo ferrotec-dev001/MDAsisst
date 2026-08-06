@@ -19,8 +19,7 @@ ISS-009（v0.3.0以降のリリースで確認）: `vpk pack` は `--msi --instL
 
 ## 決定
 
-`vpk pack` に Velopack CLI 1.2.0 が提供する以下のフラグを追加し、
-per-user 用アセットの生成自体を止める。
+当初は `vpk pack` に Velopack CLI 1.2.0 が提供する以下のフラグを追加する案とした。
 
 ```
 vpk pack ... --msi --instLocation PerMachine --noInst --noPortable
@@ -28,6 +27,22 @@ vpk pack ... --msi --instLocation PerMachine --noInst --noPortable
 
 - `--noInst`: per-user インストーラー（`Setup.exe`）の生成を止める
 - `--noPortable`: ポータブル版（`Portable.zip`）の生成を止める
+
+しかし v0.3.3 の実リリース実行（Windows GitHub Actions ランナー）で検証したところ、
+Velopack CLI 1.2.0（現時点の最新安定版）は次のエラーで `vpk pack` 自体が失敗する
+ことが判明した。
+
+```
+Cannot use '--noPortable' and '--noInst' options together, please choose one.
+```
+
+そのため、あらかじめ想定していたフォールバック案（下記「検証方針」参照）を正式な
+決定として採用する。`vpk pack` コマンドは ADR-0009 の状態（`--msi --instLocation
+PerMachine` のみ）に戻し、代わりに `vpk pack` 実行後・`vpk upload github` 実行前に
+ワークフロー内で `Setup.exe` / `Portable.zip` を出力フォルダから削除するステップ
+（`Remove per-user distributables (ISS-009, ADR-0012)`）を追加した。
+`vpk upload github` は出力フォルダの中身をそのままアップロードする実装のため、
+アップロード前に削除すればアセットとして公開されない。
 
 一方で、次のファイルは引き続き生成・アップロードする。
 
@@ -40,16 +55,15 @@ Velopackの `UpdateManager.CheckForUpdatesAsync`）は維持しており、こ�
 GitHub Releases 上の nupkg／マニフェストを読みに行く実装のため、
 これらのファイルを消すと更新通知機能自体が壊れる。
 
-## 検証方針
+## 検証結果（v0.3.3）
 
-`--noInst` が `--msi` のビルド過程に影響しないことは、Velopackの内部実装上は
-MSIがWiX 5テンプレートから独立して生成される設計だが、リリースパイプラインは
-Windows専用GitHub Actionsランナーでしか実行できないため、次回リリース
-（v0.3.3想定）の実行結果で最終確認する。
-
-- 万一 `.msi` の生成に悪影響が出た場合のフォールバック: `--noInst --noPortable`
-  を外し、代わりに `vpk pack` 実行後・`vpk upload github` 実行前に
-  ワークフロー内で `Setup.exe` / `Portable.zip` を明示的に削除するステップを追加する。
+- 1回目の実行: `vpk pack ... --noInst --noPortable` は Pack ステップで失敗
+  （上記エラー）。`.msi` が生成される前の段階で停止するため、`--msi` への
+  影響有無自体を確認できなかった。
+- 2回目の実行: `vpk pack` を素の `--msi --instLocation PerMachine` に戻し、
+  Pack成功後に `Setup.exe` / `Portable.zip` を削除するステップを追加した
+  構成で成功。GitHub Releases に `.msi` / `.nupkg`（full・delta）/
+  `RELEASES` 系ファイルのみが公開されることを確認した。
 
 ## 影響
 
