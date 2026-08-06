@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using MDAsisst.App.Interop;
 using MDAsisst.App.Services;
 using MDAsisst.Core.Settings;
+using MDAsisst.Updating;
 
 namespace MDAsisst.App.Views;
 
@@ -287,20 +289,17 @@ public partial class SettingsWindow : Window
                 return;
             }
 
+            // ADR-0011: アプリ内でのダウンロード・自己適用は行わない。MSIの手動再インストールへ誘導する。
+            UpdateStatus.Text = $"v{result.Version} が公開されています。配布されたMSIで手動更新してください。";
             if (MessageBox.Show(this,
-                    $"新しいバージョン v{result.Version} があります。今すぐ更新しますか？\n" +
-                    "（インストール先が Program Files のため、管理者権限の確認が表示されます）",
-                    "MDAsisst", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    $"新しいバージョン v{result.Version} が公開されています。\n" +
+                    "更新はアプリ内から自動適用せず、配布されたMSIインストーラーで手動更新する運用です。\n" +
+                    "リリースページを開きますか？",
+                    "MDAsisst", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
             {
-                UpdateStatus.Text = $"v{result.Version} が利用可能です。";
-                return;
+                var url = result.ReleaseNotesUrl ?? $"{VelopackUpdateService.DefaultRepositoryUrl}/releases/latest";
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
-
-            var progress = new Progress<int>(p => UpdateStatus.Text = $"ダウンロード中... {p}%");
-            if (await _app.UpdateService.DownloadAsync(result, progress))
-                _app.UpdateService.ApplyAndRestart(result);
-            else
-                UpdateStatus.Text = "ダウンロードに失敗しました。ネットワークを確認してください。";
         }
         catch (Exception ex)
         {

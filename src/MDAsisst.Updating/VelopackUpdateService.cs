@@ -56,33 +56,10 @@ public sealed class VelopackUpdateService : IUpdateService
         }
     }
 
-    public async Task<bool> DownloadAsync(UpdateCheckResult update, IProgress<int>? progress = null, CancellationToken ct = default)
-    {
-        if (update?.Payload is not UpdateInfo info) return false;
-        try
-        {
-            await _manager.DownloadUpdatesAsync(info, p => progress?.Report(p), ct).ConfigureAwait(false);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _log.Warn("更新のダウンロードに失敗しました。", ex);
-            return false;
-        }
-    }
-
-    public bool ApplyAndRestart(UpdateCheckResult update)
-    {
-        if (update?.Payload is not UpdateInfo info) return false;
-        try
-        {
-            _manager.ApplyUpdatesAndRestart(info.TargetFullRelease);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _log.Error("更新の適用に失敗しました。", ex);
-            return false;
-        }
-    }
+    // ADR-0011: DownloadAsync / ApplyAndRestart は撤去した。
+    // アプリ自身が Program Files 配下の DLL を自己書き換えする経路（Velopack の
+    // ApplyUpdatesAndRestart）が、ADR-0009 の per-machine 化後も EDR に検知される
+    // 事例が確認されたため、更新の「適用」はユーザー／IT部門による MSI の手動
+    // 再インストールに一本化する。本サービスは「新バージョンの有無を確認する」
+    // （CheckAsync）機能のみを提供する。
 }

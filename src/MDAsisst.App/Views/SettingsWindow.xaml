@@ -118,8 +118,8 @@
                 <StackPanel Margin="12">
                     <TextBlock Text="更新方式" Margin="0,4"/>
                     <!-- ADR-0009: 「自動」は確認のみ。適用は必ず同意ダイアログを経る（無人適用しない） -->
-                    <RadioButton x:Name="UpdateAuto" Style="{StaticResource FluentRadioButton}" Content="自動（バックグラウンドで確認のみ／適用は確認後）" Margin="0,4"/>
-                    <RadioButton x:Name="UpdateManual" Style="{StaticResource FluentRadioButton}" Content="手動（このボタンで確認）" Margin="0,4"/>
+                    <RadioButton x:Name="UpdateAuto" Style="{StaticResource FluentRadioButton}" Content="自動（バックグラウンドで確認・通知のみ／更新はMSIで手動再インストール）" Margin="0,4"/>
+                    <RadioButton x:Name="UpdateManual" Style="{StaticResource FluentRadioButton}" Content="手動（このボタンで確認・通知のみ／更新はMSIで手動再インストール）" Margin="0,4"/>
                     <RadioButton x:Name="UpdateDisabled" Style="{StaticResource FluentRadioButton}" Content="不要（ネットワークへ接続しない）" Margin="0,4"/>
 
                     <Button x:Name="CheckUpdateButton" Content="更新を確認" Width="140" HorizontalAlignment="Left"

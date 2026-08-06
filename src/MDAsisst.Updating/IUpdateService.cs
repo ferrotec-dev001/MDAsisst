@@ -12,6 +12,14 @@ public sealed record UpdateCheckResult(string Version, string? ReleaseNotesUrl)
 /// <summary>
 /// 更新機能の抽象。オフライン・API 制限・未インストール実行など、
 /// 失敗しても例外を投げず null / false を返す契約とする（FR-ST-08）。
+///
+/// ADR-0011: v0.3.1 のオンライン自動更新（ダウンロード・アプリ自身による
+/// Program Files 配下の DLL 自己書き換え）が、Program Files への配置に
+/// 移行済み（ADR-0009）にもかかわらず EDR に検知される事例が判明した。
+/// これを受け、アプリ自身が更新ファイルを取得・適用する経路を廃止し、
+/// 「新バージョンの有無を確認して通知するだけ」の機能に縮小する。
+/// 実際の更新はユーザー（またはIT部門）が配布された MSI を手動で
+/// 再インストールする運用に統一する（DownloadAsync / ApplyAndRestart は撤去）。
 /// </summary>
 public interface IUpdateService
 {
@@ -22,13 +30,4 @@ public interface IUpdateService
     string CurrentVersion { get; }
 
     Task<UpdateCheckResult?> CheckAsync(CancellationToken ct = default);
-
-    Task<bool> DownloadAsync(UpdateCheckResult update, IProgress<int>? progress = null, CancellationToken ct = default);
-
-    /// <summary>
-    /// ダウンロード済み更新を今すぐ適用して再起動する。
-    /// ADR-0009: 更新の適用は必ずユーザーの同意（確認ダイアログ）を得た直後にこのメソッドを
-    /// 呼び出す形で行う。無人・バックグラウンドでの自動適用（旧 ApplyOnExit）は提供しない。
-    /// </summary>
-    bool ApplyAndRestart(UpdateCheckResult update);
 }

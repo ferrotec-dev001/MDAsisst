@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,6 +14,7 @@ using MDAsisst.Core.Settings;
 using MDAsisst.Core.Snippets;
 using MDAsisst.Core.WindowState;
 using MDAsisst.Rendering;
+using MDAsisst.Updating;
 using Microsoft.Win32;
 
 namespace MDAsisst.App.Views;
@@ -579,23 +581,21 @@ public partial class MainWindow : Window
             _app.Settings.Save(Settings);
             if (update is null) return;
 
-            // ADR-0009: 「自動」はバックグラウンドでの確認のみを意味する。ダウンロード・適用は
-            // 必ずユーザーの同意を得てから行い、無人で自動適用しない（インストール先が
-            // Program Files のため、適用時は管理者権限の確認（UAC）も表示される）。
+            // ADR-0011: アプリ自身によるダウンロード・自己適用（旧ApplyAndRestart）は廃止。
+            // Program Files 配下の DLL をアプリ自身が書き換える挙動が、per-machine 化後も
+            // EDR に検知される事例が確認されたため、更新の適用は必ず MSI の手動再インストール
+            // （ユーザーまたはIT部門による、信頼された経路での配置）で行う。ここでは
+            // 新バージョンの存在を通知し、リリースページへ誘導するのみとする。
             SetStatus($"v{update.Version} が利用可能です。");
             var answer = MessageBox.Show(this,
-                $"新しいバージョン v{update.Version} があります。今すぐ更新しますか？\n" +
-                "（インストール先が Program Files のため、管理者権限の確認が表示されます）",
-                "MDAsisst", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                $"新しいバージョン v{update.Version} が公開されています。\n" +
+                "更新はアプリ内から自動適用せず、配布されたMSIインストーラーで手動更新する運用です。\n" +
+                "リリースページを開きますか？",
+                "MDAsisst", MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (answer != MessageBoxResult.Yes) return;
 
-            if (!ConfirmDiscardChanges()) return;
-
-            var progress = new Progress<int>(p => SetStatus($"ダウンロード中... {p}%"));
-            if (await _app.UpdateService.DownloadAsync(update, progress))
-                _app.UpdateService.ApplyAndRestart(update);
-            else
-                SetStatus("ダウンロードに失敗しました。ネットワークを確認してください。");
+            var url = update.ReleaseNotesUrl ?? $"{VelopackUpdateService.DefaultRepositoryUrl}/releases/latest";
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
         catch (Exception ex)
         {
