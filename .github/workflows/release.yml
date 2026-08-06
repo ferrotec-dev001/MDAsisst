@@ -62,11 +62,26 @@ jobs:
           --instLocation PerMachine
 
       - name: Remove per-user distributables (ISS-009, ADR-0012)
-        # vpk upload github はこの出力フォルダの中身をそのままアップロードするため、
-        # per-user方式のSetup.exe/Portable.zipをここで削除しておけば、GitHub Releases
-        # には .msi と full/delta の .nupkg（ADR-0011のCheckAsync用）のみが公開される。
+        # v0.3.3の初回試行で判明: `vpk upload github` は実フォルダを走査するのではなく
+        # Releases/assets.win.json（vpk pack が書き出すアップロード対象マニフェスト、
+        # Velopack.Core.BuildAssets）に記載された相対パスをそのままアップロードしようと
+        # するため、ファイルだけ削除すると "Could not find file" で失敗する。
+        # そのため assets.win.json から Type=Portable / Installer のエントリも取り除いてから
+        # 実ファイルを削除する。RELEASES / releases.win.json（更新確認フィード）は
+        # Upload時にvpk自身がFull/Deltaのみで再生成するため、ここでは触らない。
         shell: pwsh
         run: |
+          $assetsPath = "Releases/assets.win.json"
+          if (Test-Path $assetsPath) {
+            $assets = @(Get-Content $assetsPath -Raw | ConvertFrom-Json)
+            $filtered = @($assets | Where-Object { $_.Type -ne "Portable" -and $_.Type -ne "Installer" })
+            $filtered | ConvertTo-Json -AsArray -Depth 5 | Set-Content $assetsPath -Encoding utf8NoBOM
+            Write-Host "assets.win.json (filtered):"
+            Get-Content $assetsPath
+          } else {
+            Write-Error "assets.win.json が見つかりません。vpk pack の出力先/チャンネル指定を確認してください。"
+            exit 1
+          }
           Remove-Item -Path "Releases/*-Setup.exe" -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "Releases/*-Portable.zip" -Force -ErrorAction SilentlyContinue
           Get-ChildItem "Releases" | Format-Table Name, Length
