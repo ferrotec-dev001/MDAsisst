@@ -45,6 +45,11 @@ jobs:
         # --msi でMSIインストーラーを追加生成し、--instLocation PerMachine で
         # インストール先を Program Files\Ferrotec Corporation\MDAsisst（要管理者権限）に固定する。
         # 配布・案内は Setup.exe ではなく .msi を用いること（Setup.exe は per-user 固定のため）。
+        # ADR-0012 (ISS-009): --noInst / --noPortable で per-user 用の Setup.exe と
+        # Portable.zip の生成自体を止める。誤って実行すると %LocalAppData% への
+        # per-user インストールとなり ISS-008（EDRブロック）が再発するため。
+        # full/delta の .nupkg と RELEASES 系ファイルは、更新の有無を確認する
+        # CheckAsync（ADR-0011、適用は行わずMSI再配布に一本化）に必要なため引き続き生成する。
         run: >
           vpk pack
           -u Ferrotec.MDAsisst
@@ -56,6 +61,8 @@ jobs:
           --channel win
           --msi
           --instLocation PerMachine
+          --noInst
+          --noPortable
 
       - name: Upload to GitHub Releases
         run: >

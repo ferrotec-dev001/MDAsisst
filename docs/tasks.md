@@ -125,7 +125,7 @@ Velopackのper-userインストール（`%LocalAppData%`＋未署名＋自己書
 | ISS-005 | Topmost が他アプリのフルスクリーン後に外れる場合がある | UAT で確認し、必要なら定期再適用 |
 | ISS-006 | 10,000行文書の再描画が約2.4秒（CI実測）かかりNFR-04未達 | **解決済み**: ADR-0005の暫定策（5,000行超で自動プレビュー一時停止）を恒久仕様として確定。想定文書規模は数百行のためADR-0005以上の対策は不要（2026-08-05確定） |
 | ISS-007 | v0.2.0実機で、更新直後に再起動すると `FileLoadException`（アクセス拒否）で起動不能になる場合がある | ADR-0008で暫定対策（`restart:true`）を実施したが、v0.2.1実機（SN11, EDR: Cybereason導入）で再発。真因はEDRによる誤検知と判明（ISS-008参照）。**根本対策としてADR-0009へ移行、解決済み**（2026-08-05） |
-| ISS-009 | v0.3.0 のリリース資産に、per-user 方式の `Ferrotec.MDAsisst-win-Setup.exe` と `Ferrotec.MDAsisst-win-Portable.zip` が Velopack により自動生成・添付されている。利用者が誤ってこれらを実行すると `%LocalAppData%` にインストールされ、ISS-008（EDRブロック）が再発する | **未解決**。暫定対応として操作説明書 3.1 節に警告を明記。恒久対応は `vpk pack` に `--noInst --noPortable` を追加して生成自体を止めること（次回リリースで対応可、要判断） |
+| ISS-009 | v0.3.0 のリリース資産に、per-user 方式の `Ferrotec.MDAsisst-win-Setup.exe` と `Ferrotec.MDAsisst-win-Portable.zip` が Velopack により自動生成・添付されている。利用者が誤ってこれらを実行すると `%LocalAppData%` にインストールされ、ISS-008（EDRブロック）が再発する | **対応中**: ADR-0012に基づき`release.yml`の`vpk pack`に`--noInst --noPortable`を追加し、生成自体を止めるコード変更を実施（2026-08-06）。`--msi`との組み合わせがWindowsランナー上で問題なく動作するかは次回リリース実行時に確認する |
 | ISS-008 | EDR（Cybereason）が、`%LocalAppData%`配下の未署名・自己書き換え実行ファイル（Velopackのper-userインストール）を高リスクと判定し、通知なしにDLLロードをブロック（`ACCESS_DENIED`）する | ADR-0009でインストール先をProgram Files（per-machine, MSI）に変更したが、**ISS-010のとおり更新の自己適用局面で類似事象が再発**したため「解決済み」の判定を撤回。真因（未署名アプリの自己書き換えという挙動）への対策はADR-0011に統合 |
 | ISS-010 | v0.3.1実機で、オンライン自動更新（アプリ内の確認→同意→ダウンロード→`ApplyAndRestart`）実行直後に`FileLoadException`（アクセス拒否）で起動不能になる。同一端末でMSIをクリーンインストールした場合は正常起動することを確認済み | **解決済み**: ADR-0011で、アプリ自身によるダウンロード・自己適用の経路（`DownloadAsync`/`ApplyAndRestart`）を完全に廃止。更新は新バージョン通知＋リリースページ誘導のみとし、実際の適用はMSIの手動再インストールに一本化（2026-08-06） |
 
@@ -143,3 +143,16 @@ ADR-0009 の変更は配布方式そのものを変えるため、リリース�
 - [ ] SN11（EDR: Cybereason 導入端末）で正常に起動すること = ISS-008 の解消確認
 - [ ] 設定（`%APPDATA%\MDAsisst\settings.json`）が移行後も引き継がれること
 - [ ] v0.3.0 → v0.3.1 の更新で、同意ダイアログ → UAC → 再起動 の流れが成立すること
+
+## v0.3.3（予定）: per-user資産の生成停止（ISS-009, ADR-0012）
+
+- `.github/workflows/release.yml`: `vpk pack` に `--noInst --noPortable` を追加。
+  `Ferrotec.MDAsisst-win-Setup.exe` / `Ferrotec.MDAsisst-win-Portable.zip` を
+  生成しないようにした。`.msi` と full/delta の `.nupkg`／`RELEASES` 系ファイルは
+  引き続き生成する（`.nupkg`はCheckAsyncによる更新確認に必要、ADR-0011参照）。
+- リリース資産が `.msi` のみになることをリリース実行結果で確認する必要がある
+  （`--noInst` が `--msi` のビルドに悪影響を与えないかは実機のWindowsランナーで
+  要確認。問題があれば`vpk pack`後・アップロード前にファイルを明示削除する
+  フォールバックへ切り替える）。
+- 確認後、`docs/operation-manual.md` 3.1節の「使用禁止アセット」に関する警告文を
+  「そもそも存在しない」旨に簡略化する。
