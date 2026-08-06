@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using MDAsisst.App.Interop;
 using MDAsisst.App.Services;
 using MDAsisst.Core.Settings;
 
@@ -38,11 +39,46 @@ public partial class SettingsWindow : Window
         LoadFromSettings();
         _isLoading = false;
 
+        // Issue #15: SetLayeredWindowAttributes はウィンドウハンドルが生成済みで
+        // ないと何もしないため、HWND 確定後の Loaded で最初の適用を行う。
+        // Issue #16: 角丸も同じ理由で HWND 確定後にのみ適用できる。
+        Loaded += (_, _) =>
+        {
+            ApplyLiveAppearance();
+            WindowEffects.ApplyRoundedCorners(this);
+        };
+
         Closed += (_, _) =>
         {
             // OK 以外（キャンセル・×・Escape）で閉じた場合は必ず元の状態へ戻す。
             if (!_accepted) RevertToSnapshot();
         };
+    }
+
+    /// <summary>
+    /// Issue #12/#15: 設定画面自身にも透過度・ウィンドウ色・フォント色を即時反映する。
+    /// これまでこのウィンドウには一切適用されておらず、常に既定の不透明配色のままだった。
+    /// </summary>
+    private void ApplyLiveAppearance()
+    {
+        var a = _settings.Appearance;
+        WindowEffects.SetOpacity(this, a.Opacity);
+
+        var bg = ToBrush(a.WindowColor, Color.FromRgb(0x2D, 0x2D, 0x30));
+        var fg = ToBrush(a.ForegroundColor, Colors.White);
+        Background = bg;
+        Foreground = fg;
+        SettingsTitleText.Foreground = fg;
+    }
+
+    private static SolidColorBrush ToBrush(string hex, Color fallback)
+    {
+        try
+        {
+            if (ColorConverter.ConvertFromString(hex) is Color c) return new SolidColorBrush(c);
+        }
+        catch (FormatException) { /* 設定の手編集ミス。既定色で継続する。 */ }
+        return new SolidColorBrush(fallback);
     }
 
     private void LoadFromSettings()
@@ -96,6 +132,7 @@ public partial class SettingsWindow : Window
         if (_isLoading) return;
 
         _settings.Appearance.Opacity = e.NewValue;
+        ApplyLiveAppearance();
         _onLivePreview?.Invoke();
     }
 
@@ -117,6 +154,7 @@ public partial class SettingsWindow : Window
             swatch.Background = new SolidColorBrush(c);
             if (isWindowColor) _settings.Appearance.WindowColor = text;
             else _settings.Appearance.ForegroundColor = text;
+            ApplyLiveAppearance();
             _onLivePreview?.Invoke();
         }
         catch (FormatException)
@@ -210,6 +248,7 @@ public partial class SettingsWindow : Window
         _settings.Appearance = _snapshot.Appearance;
         _settings.Behavior = _snapshot.Behavior;
         _settings.Update = _snapshot.Update;
+        ApplyLiveAppearance();
         _onLivePreview?.Invoke();
     }
 
@@ -223,6 +262,7 @@ public partial class SettingsWindow : Window
         _settings.Behavior = defaults.Behavior;
         _settings.Update = defaults.Update;
         LoadFromSettings();
+        ApplyLiveAppearance();
         _onLivePreview?.Invoke();
     }
 

@@ -13,6 +13,10 @@ internal static class NativeMethods
     internal const uint LWA_ALPHA = 0x2;
     internal const int MONITOR_DEFAULTTONEAREST = 2;
 
+    /// <summary>Issue #16: Fluent デザインの角丸表現用（Windows 11 のみ有効）。</summary>
+    internal const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    internal const int DWMWCP_ROUND = 2;
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct RECT { public int Left, Top, Right, Bottom; }
 
@@ -44,4 +48,7 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    [DllImport("dwmapi.dll")]
+    internal static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 }

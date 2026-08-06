@@ -25,6 +25,19 @@ internal static class WindowEffects
         NativeMethods.SetLayeredWindowAttributes(hwnd, 0, alpha, NativeMethods.LWA_ALPHA);
     }
 
+    /// <summary>
+    /// Issue #16: Fluent デザインの角丸をウィンドウ枠へ適用する。
+    /// Windows 11 未満では DwmSetWindowAttribute が失敗するだけで、既存の見た目（角丸なし）に留まる
+    /// ため try/catch は不要（戻り値は無視して安全に無視できる）。
+    /// </summary>
+    public static void ApplyRoundedCorners(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        var preference = NativeMethods.DWMWCP_ROUND;
+        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
+    }
+
     /// <summary>Alt+Tab の一覧に出さない（常駐ツールとしての作法）。</summary>
     public static void HideFromAltTab(Window window)
     {

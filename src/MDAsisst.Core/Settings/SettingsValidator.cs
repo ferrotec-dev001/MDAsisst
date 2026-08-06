@@ -14,6 +14,9 @@ public static class SettingsValidator
     public const int MaxDebounceMs = 2000;
     public const int MaxDelaySeconds = 3600;
     public const double MinWindowSize = 240;
+    /// <summary>Windows が最小化中の座標として返す -32000 付近の値を弾くための下限（ISS-014）。</summary>
+    public const double MinCoordinate = -10000;
+    public const double MaxCoordinate = 10000;
 
     public static AppSettings Normalize(AppSettings s)
     {
@@ -35,8 +38,11 @@ public static class SettingsValidator
         var w = s.Window;
         if (!IsFinite(w.Width) || w.Width < MinWindowSize) w.Width = 900;
         if (!IsFinite(w.Height) || w.Height < MinWindowSize) w.Height = 600;
-        if (!IsFinite(w.Left)) w.Left = 120;
-        if (!IsFinite(w.Top)) w.Top = 120;
+        // Issue #14: OS 最小化中に Left/Top を読むと Windows が "-32000" 付近の
+        // アイコン化位置を返すことがある。これが誤って保存されると次回起動時に
+        // ウィンドウが画面外・不正なサイズ相当の位置で復元される。範囲外は既定値へ戻す。
+        if (!IsFinite(w.Left) || w.Left <= MinCoordinate || w.Left >= MaxCoordinate) w.Left = 120;
+        if (!IsFinite(w.Top) || w.Top <= MinCoordinate || w.Top >= MaxCoordinate) w.Top = 120;
 
         s.RecentFiles.RemoveAll(string.IsNullOrWhiteSpace);
         if (s.RecentFiles.Count > AppSettings.MaxRecentFiles)

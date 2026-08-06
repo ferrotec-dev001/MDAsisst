@@ -20,22 +20,8 @@
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Window.Resources>
-        <Style x:Key="TitleIconButton" TargetType="Button">
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#DDDDDD"/>
-            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3A3A3D"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
+    <!-- Issue #16: タイトルバー配色・アイコンボタン様式は App.xaml が読み込む
+         Themes/FluentTheme.xaml の TitleIconButton を共通利用する。 -->
 
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
@@ -56,8 +42,10 @@
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
 
-        <!-- タイトルバー: Issue #6 メニューをアイコン化してここへ統合、Issue #7 ステータスバー廃止に伴い状態はツールチップへ -->
-        <Grid Grid.Row="0" Background="#252526" x:Name="TitleBarGrid">
+        <!-- タイトルバー: Issue #6 メニューをアイコン化してここへ統合、Issue #7 ステータスバー廃止に伴い状態はツールチップへ
+             Issue #12: 背景は透過にし、Window.Background（設定のウィンドウ色）をそのまま透過させる。
+             以前はここに固定色 #252526 を敷いていたため、ウィンドウ色設定がタイトルバーへ反映されなかった。 -->
+        <Grid Grid.Row="0" Background="Transparent" x:Name="TitleBarGrid">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -76,12 +64,9 @@
                 <Button x:Name="NewButton" Content="&#xE7C3;" ToolTip="新規 (Ctrl+N)" Click="New_Click" Style="{StaticResource TitleIconButton}"/>
                 <Button x:Name="OpenButton" Content="&#xE8E5;" ToolTip="開く (Ctrl+O)" Click="Open_Click" Style="{StaticResource TitleIconButton}"/>
                 <Button x:Name="SaveButton" Content="&#xE74E;" ToolTip="保存 (Ctrl+S)" Click="Save_Click" Style="{StaticResource TitleIconButton}"/>
-                <Border Width="1" Height="16" Background="#3F3F46" Margin="4,0"/>
-                <Button Content="&#xE8DD;" ToolTip="太字 (Ctrl+B)" Click="Bold_Click" Style="{StaticResource TitleIconButton}"/>
-                <Button Content="&#xE8DB;" ToolTip="斜体 (Ctrl+I)" Click="Italic_Click" Style="{StaticResource TitleIconButton}"/>
-                <Button Content="&#xE71B;" ToolTip="リンク (Ctrl+K)" Click="Link_Click" Style="{StaticResource TitleIconButton}"/>
-                <Button Content="&#xE8EC;" ToolTip="表の挿入" Click="Table_Click" Style="{StaticResource TitleIconButton}"/>
-                <Border Width="1" Height="16" Background="#3F3F46" Margin="4,0"/>
+                <Border x:Name="TitleBarSeparator1" Width="1" Height="16" Background="#3F3F46" Margin="4,0"/>
+                <!-- Issue #11: 太字/斜体/リンク/表はチートシート・キーボードショートカット(Ctrl+B/I/K)で
+                     利用できるため、使用頻度の低いタイトルバーからは削除した -->
                 <Button x:Name="LayoutButton" Content="&#xE8A9;" ToolTip="表示レイアウトの切替" Click="Layout_Click" Style="{StaticResource TitleIconButton}"/>
             </StackPanel>
 
@@ -127,8 +112,9 @@
 
             <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#3F3F46"/>
 
-            <!-- チートシート: Issue #5 検索前提をやめ、全項目を常時アイコンボタンとして提示 -->
-            <DockPanel Grid.Column="2" Background="#252526">
+            <!-- チートシート: Issue #5 検索前提をやめ、全項目を常時アイコンボタンとして提示
+                 Issue #12: ここも固定色を敷いていたためウィンドウ色設定が反映されなかった。透過にして統一する。 -->
+            <DockPanel x:Name="CheatSheetPanel" Grid.Column="2" Background="Transparent">
                 <TextBlock DockPanel.Dock="Top" Text="Markdown 記法一覧（クリックで挿入）"
                            Foreground="#AAAAAA" FontSize="10" Margin="8,6,8,2" TextWrapping="Wrap"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -145,13 +131,25 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
+                                                <!-- Issue #13: マウスオーバーで記法名・入力例・説明をポップアップ表示する -->
                                                 <Button Width="56" Height="44" Margin="3"
-                                                        Background="#33FFFFFF" BorderBrush="#3F3F46" BorderThickness="1"
-                                                        Foreground="#FFFFFF" FontFamily="Consolas" FontSize="13"
+                                                        Style="{StaticResource FluentCheatButton}"
+                                                        FontFamily="Consolas" FontSize="13"
                                                         Content="{Binding Glyph}"
-                                                        ToolTip="{Binding Title}"
                                                         Tag="{Binding}"
-                                                        Click="CheatButton_Click"/>
+                                                        Click="CheatButton_Click">
+                                                    <Button.ToolTip>
+                                                        <ToolTip>
+                                                            <StackPanel MaxWidth="240">
+                                                                <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="12"/>
+                                                                <TextBlock Text="{Binding Example}" FontFamily="Consolas" FontSize="12"
+                                                                           Foreground="#FFD54F" Margin="0,2,0,0"/>
+                                                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="11"
+                                                                           Foreground="#CCCCCC" Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                        </ToolTip>
+                                                    </Button.ToolTip>
+                                                </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

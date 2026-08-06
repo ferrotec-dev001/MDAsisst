@@ -52,6 +52,22 @@ public class SettingsValidatorTests
         Assert.Equal(900, s.Window.Width);
         Assert.Equal(600, s.Window.Height);
     }
+
+    [Theory]
+    [InlineData(-32000, 120)]   // ISS-014: OS 最小化中に読める疑似座標
+    [InlineData(-9999, -9999)]  // 境界の内側はそのまま
+    [InlineData(-10000, 120)]   // 境界値
+    [InlineData(10000, 120)]    // 境界値
+    [InlineData(double.NaN, 120)]
+    public void ウィンドウ位置が異常値の場合は既定値へ戻る(double input, double expected)
+    {
+        var s = new AppSettings();
+        s.Window.Left = input;
+        s.Window.Top = input;
+        SettingsValidator.Normalize(s);
+        Assert.Equal(expected, s.Window.Left);
+        Assert.Equal(expected, s.Window.Top);
+    }
 }
 
 public class JsonSettingsServiceTests : IDisposable

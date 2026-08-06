@@ -15,47 +15,36 @@
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Window.Resources>
-        <Style x:Key="TitleIconButton" TargetType="Button">
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#DDDDDD"/>
-            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3A3A3D"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
+    <!-- Issue #16: タイトルバー配色・アイコンボタン様式は App.xaml が読み込む
+         Themes/FluentTheme.xaml の TitleIconButton を共通利用する。 -->
 
     <DockPanel>
-        <!-- カスタムタイトルバー -->
-        <Grid DockPanel.Dock="Top" Height="32" Background="#252526">
+        <!-- カスタムタイトルバー
+             Issue #12/#15: 固定色・不透明で塗っていたため、メインウィンドウ同様に
+             設定（ウィンドウ色・フォント色・透過度）が反映されなかった。透過にして統一する。 -->
+        <Grid x:Name="SettingsTitleBarGrid" DockPanel.Dock="Top" Height="32" Background="Transparent">
             <Image Source="pack://application:,,,/Assets/icon.ico" Width="16" Height="16"
                    Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-            <TextBlock Text="MDAsisst の設定" Margin="30,0,0,0" VerticalAlignment="Center"
+            <TextBlock x:Name="SettingsTitleText" Text="MDAsisst の設定" Margin="30,0,0,0" VerticalAlignment="Center"
                        Foreground="#DDDDDD" FontSize="12"/>
             <Button Content="&#xE8BB;" ToolTip="閉じる" Click="TitleBarClose_Click"
                     HorizontalAlignment="Right" Style="{StaticResource TitleIconButton}"/>
         </Grid>
 
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12">
-            <Button Content="既定に戻す" Width="100" Margin="0,0,8,0" Click="Reset_Click"/>
-            <Button Content="OK" Width="90" Margin="0,0,8,0" IsDefault="True" Click="Ok_Click"/>
-            <Button Content="キャンセル" Width="90" IsCancel="True" Click="Cancel_Click"/>
+            <Button Content="既定に戻す" Width="100" Margin="0,0,8,0" Click="Reset_Click" Style="{StaticResource FluentButton}"/>
+            <Button Content="OK" Width="90" Margin="0,0,8,0" IsDefault="True" Click="Ok_Click" Style="{StaticResource FluentAccentButton}"/>
+            <Button Content="キャンセル" Width="90" IsCancel="True" Click="Cancel_Click" Style="{StaticResource FluentButton}"/>
         </StackPanel>
 
-        <TabControl Background="#2D2D30" Margin="12,12,12,0">
+        <TabControl x:Name="SettingsTabControl" Margin="12,12,12,0" Style="{StaticResource FluentTabControl}">
             <TabItem Header="アピアランス">
                 <StackPanel Margin="12">
                     <TextBlock Text="透過度（操作するとすぐに画面へ反映されます）" Margin="0,4"/>
                     <DockPanel>
                         <TextBlock x:Name="OpacityValue" DockPanel.Dock="Right" Width="50" TextAlignment="Right"/>
                         <Slider x:Name="OpacitySlider" Minimum="0.2" Maximum="1.0" TickFrequency="0.05"
+                                Foreground="{StaticResource FluentAccentBrush}"
                                 IsSnapToTickEnabled="True" ValueChanged="Opacity_Changed"/>
                     </DockPanel>
 
@@ -63,8 +52,8 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Width="28" Height="24" Margin="0,0,8,0"
                                 BorderBrush="#666666" BorderThickness="1" x:Name="WindowColorSwatch"/>
-                        <Button DockPanel.Dock="Right" Content="選択..." Width="70" Margin="8,0,0,0" Click="PickWindowColor_Click"/>
-                        <TextBox x:Name="WindowColorBox" Background="#1E1E1E" Foreground="White"
+                        <Button DockPanel.Dock="Right" Content="選択..." Width="70" Margin="8,0,0,0" Click="PickWindowColor_Click" Style="{StaticResource FluentButton}"/>
+                        <TextBox x:Name="WindowColorBox" Style="{StaticResource FluentTextBox}"
                                  TextChanged="WindowColorBox_TextChanged"/>
                     </DockPanel>
 
@@ -72,45 +61,45 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Left" Width="28" Height="24" Margin="0,0,8,0"
                                 BorderBrush="#666666" BorderThickness="1" x:Name="ForegroundColorSwatch"/>
-                        <Button DockPanel.Dock="Right" Content="選択..." Width="70" Margin="8,0,0,0" Click="PickForegroundColor_Click"/>
-                        <TextBox x:Name="ForegroundColorBox" Background="#1E1E1E" Foreground="White"
+                        <Button DockPanel.Dock="Right" Content="選択..." Width="70" Margin="8,0,0,0" Click="PickForegroundColor_Click" Style="{StaticResource FluentButton}"/>
+                        <TextBox x:Name="ForegroundColorBox" Style="{StaticResource FluentTextBox}"
                                  TextChanged="ForegroundColorBox_TextChanged"/>
                     </DockPanel>
 
                     <TextBlock Text="エディタのフォント" Margin="0,12,0,4"/>
                     <DockPanel>
                         <TextBox x:Name="EditorFontSizeBox" DockPanel.Dock="Right" Width="60"
-                                 Background="#1E1E1E" Foreground="White" TextChanged="Font_Changed"/>
-                        <ComboBox x:Name="EditorFontBox" IsEditable="True" Margin="0,0,8,0"
+                                 Style="{StaticResource FluentTextBox}" TextChanged="Font_Changed"/>
+                        <ComboBox x:Name="EditorFontBox" IsEditable="True" Margin="0,0,8,0" Style="{StaticResource FluentComboBox}"
                                   SelectionChanged="Font_Changed" LostFocus="Font_Changed"/>
                     </DockPanel>
 
                     <TextBlock Text="プレビューのフォント" Margin="0,12,0,4"/>
                     <DockPanel>
                         <TextBox x:Name="PreviewFontSizeBox" DockPanel.Dock="Right" Width="60"
-                                 Background="#1E1E1E" Foreground="White" TextChanged="Font_Changed"/>
-                        <ComboBox x:Name="PreviewFontBox" IsEditable="True" Margin="0,0,8,0"
+                                 Style="{StaticResource FluentTextBox}" TextChanged="Font_Changed"/>
+                        <ComboBox x:Name="PreviewFontBox" IsEditable="True" Margin="0,0,8,0" Style="{StaticResource FluentComboBox}"
                                   SelectionChanged="Font_Changed" LostFocus="Font_Changed"/>
                     </DockPanel>
 
-                    <CheckBox x:Name="AnimationCheck" Content="アニメーションを有効にする" Margin="0,16,0,0"/>
+                    <CheckBox x:Name="AnimationCheck" Style="{StaticResource FluentCheckBox}" Content="アニメーションを有効にする" Margin="0,16,0,0"/>
                 </StackPanel>
             </TabItem>
 
             <TabItem Header="動作">
                 <StackPanel Margin="12">
-                    <CheckBox x:Name="TopmostCheck" Content="常に最前面に表示する" Margin="0,4"/>
-                    <CheckBox x:Name="StartupCheck" Content="Windows 起動時に常駐する" Margin="0,4"/>
-                    <CheckBox x:Name="TrayOnCloseCheck" Content="閉じるボタンでトレイに格納する" Margin="0,4"/>
+                    <CheckBox x:Name="TopmostCheck" Style="{StaticResource FluentCheckBox}" Content="常に最前面に表示する" Margin="0,4"/>
+                    <CheckBox x:Name="StartupCheck" Style="{StaticResource FluentCheckBox}" Content="Windows 起動時に常駐する" Margin="0,4"/>
+                    <CheckBox x:Name="TrayOnCloseCheck" Style="{StaticResource FluentCheckBox}" Content="閉じるボタンでトレイに格納する" Margin="0,4"/>
 
                     <TextBlock Text="自動展開までの秒数（0 = 即時）" Margin="0,12,0,4"/>
-                    <TextBox x:Name="AutoExpandBox" Background="#1E1E1E" Foreground="White"/>
+                    <TextBox x:Name="AutoExpandBox" Style="{StaticResource FluentTextBox}"/>
 
                     <TextBlock Text="自動最小化までの秒数（0 = 無効）" Margin="0,12,0,4"/>
-                    <TextBox x:Name="AutoMinimizeBox" Background="#1E1E1E" Foreground="White"/>
+                    <TextBox x:Name="AutoMinimizeBox" Style="{StaticResource FluentTextBox}"/>
 
                     <TextBlock Text="最小アイコンの表示位置" Margin="0,12,0,4"/>
-                    <ComboBox x:Name="CornerBox">
+                    <ComboBox x:Name="CornerBox" Style="{StaticResource FluentComboBox}">
                         <ComboBoxItem Content="左上"/>
                         <ComboBoxItem Content="右上"/>
                         <ComboBoxItem Content="左下"/>
@@ -118,10 +107,10 @@
                     </ComboBox>
 
                     <TextBlock Text="プレビュー更新の遅延 (ms)" Margin="0,12,0,4"/>
-                    <TextBox x:Name="DebounceBox" Background="#1E1E1E" Foreground="White"/>
+                    <TextBox x:Name="DebounceBox" Style="{StaticResource FluentTextBox}"/>
 
-                    <CheckBox x:Name="AutoSaveCheck" Content="自動保存する" Margin="0,12,0,4"/>
-                    <TextBox x:Name="AutoSaveIntervalBox" Background="#1E1E1E" Foreground="White"/>
+                    <CheckBox x:Name="AutoSaveCheck" Style="{StaticResource FluentCheckBox}" Content="自動保存する" Margin="0,12,0,4"/>
+                    <TextBox x:Name="AutoSaveIntervalBox" Style="{StaticResource FluentTextBox}"/>
                 </StackPanel>
             </TabItem>
 
@@ -129,12 +118,12 @@
                 <StackPanel Margin="12">
                     <TextBlock Text="更新方式" Margin="0,4"/>
                     <!-- ADR-0009: 「自動」は確認のみ。適用は必ず同意ダイアログを経る（無人適用しない） -->
-                    <RadioButton x:Name="UpdateAuto" Content="自動（バックグラウンドで確認のみ／適用は確認後）" Margin="0,4"/>
-                    <RadioButton x:Name="UpdateManual" Content="手動（このボタンで確認）" Margin="0,4"/>
-                    <RadioButton x:Name="UpdateDisabled" Content="不要（ネットワークへ接続しない）" Margin="0,4"/>
+                    <RadioButton x:Name="UpdateAuto" Style="{StaticResource FluentRadioButton}" Content="自動（バックグラウンドで確認のみ／適用は確認後）" Margin="0,4"/>
+                    <RadioButton x:Name="UpdateManual" Style="{StaticResource FluentRadioButton}" Content="手動（このボタンで確認）" Margin="0,4"/>
+                    <RadioButton x:Name="UpdateDisabled" Style="{StaticResource FluentRadioButton}" Content="不要（ネットワークへ接続しない）" Margin="0,4"/>
 
                     <Button x:Name="CheckUpdateButton" Content="更新を確認" Width="140" HorizontalAlignment="Left"
-                            Margin="0,12,0,0" Click="CheckUpdate_Click"/>
+                            Margin="0,12,0,0" Click="CheckUpdate_Click" Style="{StaticResource FluentAccentButton}"/>
                     <TextBlock x:Name="UpdateStatus" Margin="0,8,0,0" TextWrapping="Wrap"/>
                     <TextBlock x:Name="VersionLabel" Margin="0,12,0,0" Foreground="#BBBBBB"/>
                 </StackPanel>

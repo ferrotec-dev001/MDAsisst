@@ -83,6 +83,7 @@ public partial class MainWindow : Window
         ApplyAppearance();
         ApplyLayout(Settings.Behavior.LayoutMode);
         WindowEffects.HideFromAltTab(this);
+        WindowEffects.ApplyRoundedCorners(this);
         Topmost = Settings.Behavior.Topmost;
         _visibilityTimer.Start();
         ConfigureAutoSave();
@@ -111,9 +112,20 @@ public partial class MainWindow : Window
         _expandedPlacement = new Rect(Left, Top, Width, Height);
     }
 
+    /// <summary>
+    /// Issue #14: <see cref="Window.WindowState"/> が Minimized の間、Left/Top（一部環境では
+    /// Width/Height も）は Windows が返す "-32000" 付近の疑似アイコン座標になり、これを
+    /// そのまま保存すると次回復帰時にウィンドウ大きさ・位置が壊れる。Minimized 中は必ず
+    /// <see cref="Window.RestoreBounds"/>（最小化前の実座標）を使う。
+    /// </summary>
+    private Rect CurrentBounds()
+        => WindowState == System.Windows.WindowState.Minimized
+            ? RestoreBounds
+            : new Rect(Left, Top, Width, Height);
+
     private void SavePlacement()
     {
-        var p = _minimizedIconMode ? _expandedPlacement : new Rect(Left, Top, Width, Height);
+        var p = _minimizedIconMode ? _expandedPlacement : CurrentBounds();
         Settings.Window.Left = p.X;
         Settings.Window.Top = p.Y;
         Settings.Window.Width = p.Width;
@@ -129,6 +141,11 @@ public partial class MainWindow : Window
         Background = ToBrush(a.WindowColor, Color.FromRgb(0x1E, 0x1E, 0x1E));
         var fg = ToBrush(a.ForegroundColor, Colors.White);
         Foreground = fg;
+
+        // Issue #12: 以前はエディタ／プレビュー領域にしか反映されなかった。
+        // タイトルバーとチートシート領域も同じフォント色設定へ追従させる。
+        TitleText.Foreground = fg;
+        CheatCategoryList.Foreground = fg;
 
         Editor.Background = Brushes.Transparent;
         Editor.Foreground = fg;
@@ -295,6 +312,8 @@ public partial class MainWindow : Window
         if (ctrl && e.Key == Key.B) { ApplyEdit(MarkdownEditingService.ToggleWrap(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, "**")); e.Handled = true; return; }
         if (ctrl && e.Key == Key.I) { ApplyEdit(MarkdownEditingService.ToggleWrap(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, "*")); e.Handled = true; return; }
         if (ctrl && e.Key == Key.K) { InsertSnippetText("[$SEL$0](URL)"); e.Handled = true; return; }
+        // Issue #11: 表挿入ボタンをタイトルバーから削除したため、Ctrl+Shift+T をショートカットとして維持する。
+        if (ctrl && (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift && e.Key == Key.T) { InsertSnippetText(MarkdownEditingService.CreateTable(2, 3)); e.Handled = true; return; }
         if (ctrl && e.Key == Key.S) { SaveDocument(saveAs: false); e.Handled = true; return; }
         if (ctrl && e.Key == Key.O) { OpenDocument(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.N) { NewDocument(); e.Handled = true; return; }
@@ -325,16 +344,9 @@ public partial class MainWindow : Window
         if (sender is Button { Tag: SnippetItem item }) InsertSnippetText(item.InsertText);
     }
 
-    private void Bold_Click(object sender, RoutedEventArgs e)
-        => ApplyEdit(MarkdownEditingService.ToggleWrap(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, "**"));
-
-    private void Italic_Click(object sender, RoutedEventArgs e)
-        => ApplyEdit(MarkdownEditingService.ToggleWrap(Editor.Text, Editor.SelectionStart, Editor.SelectionLength, "*"));
-
-    private void Link_Click(object sender, RoutedEventArgs e) => InsertSnippetText("[$SEL$0](URL)");
-
-    private void Table_Click(object sender, RoutedEventArgs e)
-        => InsertSnippetText(MarkdownEditingService.CreateTable(2, 3));
+    // Issue #11: Bold/Italic/Link/Table のタイトルバーボタンは削除。
+    // 対応するキーボードショートカット (Ctrl+B / Ctrl+I / Ctrl+K / Ctrl+Shift+T) は
+    // Editor_PreviewKeyDown に残しているため、機能自体は引き続き利用できる。
 
     // ---------- ファイル操作 ----------
 
@@ -449,8 +461,11 @@ public partial class MainWindow : Window
 
     private void MinimizeToCornerIcon()
     {
-        if (_minimizedIconMode || !IsVisible) return;
-        _expandedPlacement = new Rect(Left, Top, Width, Height);
+        // Issue #14: OS タスクバーへ最小化中（WindowState.Minimized）は、そもそも画面に何も
+        // 見えていないため角アイコン化する意味がなく、かつ Left/Top が疑似座標になり
+        // _expandedPlacement を汚染する。OS 最小化中は角アイコン化しない。
+        if (_minimizedIconMode || !IsVisible || WindowState == System.Windows.WindowState.Minimized) return;
+        _expandedPlacement = CurrentBounds();
         _minimizedIconMode = true;
 
         TitleBarGrid.Visibility = Visibility.Collapsed;
@@ -465,6 +480,12 @@ public partial class MainWindow : Window
     {
         if (!_minimizedIconMode) return;
         _minimizedIconMode = false;
+
+        // Issue #14: タスクバーアイコンクリック等で WindowState が Minimized のまま
+        // 復帰処理に入ることがある。Left/Top/Width/Height への代入は WindowState が
+        // Normal でないと正しく反映されないため、先に戻しておく。
+        if (WindowState == System.Windows.WindowState.Minimized)
+            WindowState = System.Windows.WindowState.Normal;
 
         MinimizedIconOverlay.Visibility = Visibility.Collapsed;
         TitleBarGrid.Visibility = Visibility.Visible;
