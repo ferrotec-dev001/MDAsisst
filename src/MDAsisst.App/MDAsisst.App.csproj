@@ -19,6 +19,19 @@
     -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>
+  <!--
+    ISS-017: Program Files 配下の MDAsisst.dll が、常駐プロセスによるハンドル保持と
+    Windows インストーラーの再配置処理が重なった際にアクセス拒否（削除不可）を起こす事例が
+    確認された。PublishSingleFile 化してメインアセンブリを MDAsisst.exe に統合することで、
+    current フォルダ内の管理対象ファイル数そのものを減らし、影響範囲を縮小する。
+    RuntimeIdentifier が指定される publish 時のみ有効（通常の dotnet build には影響しない）。
+  -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release' AND '$(RuntimeIdentifier)'!=''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
   <ItemGroup>
     <ApplicationDefinition Remove="App.xaml" />
     <Page Include="App.xaml" />

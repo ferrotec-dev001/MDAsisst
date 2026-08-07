@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using MDAsisst.App.Services;
@@ -30,8 +32,17 @@ public partial class App : Application
     [STAThread]
     public static void Main(string[] args)
     {
-        // 何よりも先に実行する。インストール/更新フックはこの中で完結して終了する。
-        VelopackApp.Build().Run();
+        // ISS-017: 本アプリはトレイ常駐仕様(ADR-0010 AutoVisibilityStateMachine)のため、
+        // ウィンドウを閉じてもプロセスは終了せず current\MDAsisst.dll 等をロードし続ける。
+        // MSIのアンインストール/アップグレード(Major Upgrade)がRemoveFiles/InstallFilesを
+        // 実行する時点で常駐プロセスが残っていると、対象ファイルがロックされたまま処理が
+        // 進み、「Administratorsからのアクセス許可が必要です」という誤解を招く拒否ダイアログが
+        // 発生する（実体はACL問題ではなくハンドル保持によるロック）。
+        // OnBeforeUninstall / OnBeforeUpdate フックで既存の常駐インスタンスを確実に停止させる。
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ => TerminateOtherRunningInstances())
+            .OnBeforeUpdateFastCallback(_ => TerminateOtherRunningInstances())
+            .Run();
 
         // 常駐アプリのため多重起動を防ぐ。
         _singleInstanceMutex = new Mutex(true, @"Local\MDAsisst.SingleInstance", out var isNew);
@@ -78,5 +89,42 @@ public partial class App : Application
         Log.Info("MDAsisst を終了しました。");
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// ISS-017: MSIのアンインストール/アップグレード直前に、トレイ常駐中のものを含む
+    /// 既存の MDAsisst プロセスを確実に終了させる。current フォルダ配下の実行ファイル・
+    /// DLL のハンドルを解放し、RemoveFiles/InstallFiles でのアクセス拒否を防ぐ。
+    /// このメソッドは VelopackApp のフック経由で「一時起動されたインストーラー補助プロセス」
+    /// から呼ばれるため、Environment.ProcessId は常駐プロセスとは別物になる。
+    /// </summary>
+    private static void TerminateOtherRunningInstances()
+    {
+        var currentProcessId = Environment.ProcessId;
+        var processName = Process.GetCurrentProcess().ProcessName;
+
+        foreach (var process in Process.GetProcessesByName(processName))
+        {
+            if (process.Id == currentProcessId) continue;
+
+            try
+            {
+                // 通常終了を試みてから、応答がなければ強制終了する。
+                process.CloseMainWindow();
+                if (!process.WaitForExit(3000))
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(3000);
+                }
+            }
+            catch
+            {
+                // 既に終了している／アクセス権がない等は無視して継続する。
+                // ここで例外を伝播させるとアンインストール／更新自体が失敗するため。
+            }
+        }
+
+        // OSがファイルハンドルを解放するまでの猶予。
+        Thread.Sleep(500);
     }
 }

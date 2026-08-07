@@ -26,7 +26,10 @@ jobs:
       - name: Test before release
         run: dotnet test MDAsisst.sln -c Release
 
-      - name: Publish (self-contained)
+      - name: Publish (self-contained, single-file)
+        # ISS-017: MDAsisst.App.csproj 側で Release + RuntimeIdentifier 指定時に
+        # PublishSingleFile を有効化済み。MDAsisst.dll は MDAsisst.exe に統合され、
+        # current フォルダの管理対象ファイルが削減される（ACL/ロック起因の削除失敗対策）。
         run: >
           dotnet publish src/MDAsisst.App/MDAsisst.App.csproj
           -c Release -r win-x64 --self-contained true
